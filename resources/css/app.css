@@ -1,0 +1,65 @@
+/* ══════════════════════════════════════════════════════════════════
+   El Tara — Stylesheet entry point
+   Location: resources/css/app.css
+
+   1. Tailwind CSS v4 (utility classes: flex, gap-3, mt-4 …)
+   2. The fonts, bundled with the app (no Google Fonts call — so they
+      also load offline in the Driver App):
+        Tajawal → Arabic      Inter → English and all numbers
+   3. The El Tara design system (resources/css/eltara.css — the
+      approved demo's look), inside Tailwind's components layer.
+   4. The theme colours exposed to Tailwind, so utilities follow dark
+      and light mode automatically: bg-card, text-mu, border-line,
+      text-gn, bg-cu-dim …
+   ══════════════════════════════════════════════════════════════════ */
+
+@import "tailwindcss";
+
+@import "@fontsource/tajawal/400.css";
+@import "@fontsource/tajawal/500.css";
+@import "@fontsource/tajawal/700.css";
+@import "@fontsource/tajawal/800.css";
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/inter/700.css";
+@import "@fontsource/inter/800.css";
+
+@import "./eltara.css" layer(components);
+
+/* Tailwind scans these files for the classes we use. */
+@source "../views";
+@source "../js";
+
+/* Dark is the default; html.light switches to the light palette. */
+@custom-variant light (&:where(.light, .light *));
+
+@theme inline {
+    --color-bg: var(--bg);
+    --color-bg-2: var(--bg-2);
+    --color-card: var(--card);
+    --color-card-2: var(--card-2);
+    --color-input: var(--input);
+    --color-hover: var(--hover);
+    --color-line: var(--line);
+    --color-line-soft: var(--line-soft);
+    --color-tx: var(--tx);
+    --color-mu: var(--mu);
+    --color-mu-2: var(--mu-2);
+    --color-cu: var(--cu);
+    --color-cu-dim: var(--cu-dim);
+    --color-gn: var(--gn);
+    --color-gn-dim: var(--gn-dim);
+    --color-rd: var(--rd);
+    --color-rd-dim: var(--rd-dim);
+    --color-bl: var(--bl);
+    --color-bl-dim: var(--bl-dim);
+    --color-am: var(--am);
+    --color-am-dim: var(--am-dim);
+    --color-vi: var(--vi);
+    --color-vi-dim: var(--vi-dim);
+    --color-gold: var(--gold);
+
+    --font-ar: 'Tajawal', 'Inter', system-ui, sans-serif;
+    --font-en: 'Inter', 'Tajawal', system-ui, sans-serif;
+}

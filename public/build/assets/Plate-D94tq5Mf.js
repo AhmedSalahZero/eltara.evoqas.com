@@ -1,0 +1,1 @@
+import{C as n,D as l,G as s,H as a}from"./register-rlagy6-h.js";const r={class:"plate"},o={class:"pl-n"},p={class:"pl-a"},_={__name:"Plate",props:{number:{type:String,default:""},letters:{type:String,default:""}},setup(t){return(c,e)=>(n(),l("span",r,[e[0]||(e[0]=s("span",{class:"pl-c"},"EG",-1)),s("span",o,a(t.number),1),s("span",p,a(t.letters),1)]))}};export{_};
