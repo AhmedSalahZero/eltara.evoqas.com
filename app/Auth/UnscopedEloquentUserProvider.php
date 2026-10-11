@@ -25,6 +25,7 @@ class UnscopedEloquentUserProvider extends EloquentUserProvider
 {
     protected function newModelQuery($model = null)
     {
+
         return parent::newModelQuery($model)->withoutGlobalScope('company');
     }
 }
