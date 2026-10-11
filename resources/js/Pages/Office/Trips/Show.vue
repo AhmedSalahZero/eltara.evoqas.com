@@ -38,6 +38,7 @@ import Stars from '@/Components/Stars.vue';
 import TripForm from '@/Components/TripForm.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import { usePermissions } from '@/composables/usePermissions';
+import { useBlankForm } from '@/composables/useBlankForm';
 import { useI18n } from '@/lang/i18n';
 import { date, inputValue, money, nowInput, num, time } from '@/Utils/format';
 
@@ -80,7 +81,7 @@ function doNext() {
     if (['accept', 'loading', 'depart'].includes(s)) router.post(route('office.trips.step', tr.value.id), { step: s }, { preserveScroll: true });
     else if (s === 'custody') openCustody();
     else if (s === 'deliver') openModal('deliver');
-    else if (s === 'settle') openModal('settle');
+    else if (s === 'settle') { settleForm.startFresh(); openModal('settle'); }
 }
 
 // ── Modals ────────────────────────────────────────────────────────
@@ -89,22 +90,21 @@ const openModal = (kind) => { modal.value = kind; };
 const close = () => { modal.value = null; };
 const done = { preserveScroll: true, onSuccess: close };
 
-const custodyForm = useForm({ amount: '', note: '' });
+const custodyForm = useBlankForm({ amount: '', note: '' });
 function openCustody() {
-    custodyForm.reset(); custodyForm.clearErrors();
-    custodyForm.amount = props.wallets.custody.issued > 0 ? '' : tr.value.custody_planned;
+    custodyForm.startFresh({ amount: props.wallets.custody.issued > 0 ? '' : tr.value.custody_planned });
     openModal('custody');
 }
 
 const deliverForm = useForm({ pod: null, receiver: '' });
-const cashForm = useForm({ amount: '', received_at: '', note: '', receipt: null });
-const transferForm = useForm({ amount: '', reason: '' });
-const chargeForm = useForm({ kind: 'extra', label: '', amount: '' });
+const cashForm = useBlankForm({ amount: '', received_at: '', note: '', receipt: null });
+const transferForm = useBlankForm({ amount: '', reason: '' });
+const chargeForm = useBlankForm({ kind: 'extra', label: '', amount: '' });
 const policyForm = useForm({ transfer_policy: '', auto_transfer_limit: '' });
-const cancelForm = useForm({ reason: '' });
-const settleForm = useForm({ note: '', received_by: '', accept_unconfirmed: false });
-const decisionForm = useForm({ note: '' });
-const resolveForm = useForm({ resolution: 'accepted', note: '' });
+const cancelForm = useBlankForm({ reason: '' });
+const settleForm = useBlankForm({ note: '', received_by: '', accept_unconfirmed: false });
+const decisionForm = useBlankForm({ note: '' });
+const resolveForm = useBlankForm({ resolution: 'accepted', note: '' });
 const target = ref(null); // the transfer / collection / expense / charge being acted on
 
 function openPolicy() {
@@ -156,8 +156,8 @@ function deleteExpense() {
 // ── Transfers & disputes ──────────────────────────────────────────
 const approve = (x) => router.post(route('office.transfers.approve', x.id), {}, { preserveScroll: true });
 const review = (x) => router.post(route('office.transfers.review', x.id), {}, { preserveScroll: true });
-function openReject(x) { target.value = x; decisionForm.reset(); decisionForm.clearErrors(); openModal('reject'); }
-function openResolve(c) { target.value = c; resolveForm.reset(); resolveForm.clearErrors(); openModal('resolve'); }
+function openReject(x) { target.value = x; decisionForm.startFresh(); openModal('reject'); }
+function openResolve(c) { target.value = c; resolveForm.startFresh(); openModal('resolve'); }
 const removeCharge = () => router.delete(route('office.trips.charges.destroy', [tr.value.id, target.value.id]), { preserveScroll: true, onFinish: close });
 
 // ── Display helpers ───────────────────────────────────────────────
@@ -184,7 +184,7 @@ const pendingCount = computed(() => props.transfers.filter((x) => x.status === '
                 <div class="acts" style="display:flex;gap:8px;flex-wrap:wrap">
                     <a :href="route('office.trips.print', trip.id)" target="_blank" class="btn btn-ln"><AppIcon name="file" /> {{ t('trip.print') }}</a>
                     <button v-if="open && can('trips.edit') && options.form" class="btn btn-ln" @click="openModal('edit')"><AppIcon name="edit" /> {{ t('common.edit') }}</button>
-                    <button v-if="['planned', 'accepted'].includes(trip.status) && can('trips.delete')" class="btn btn-rd" @click="cancelForm.reset(); openModal('cancel')"><AppIcon name="x" /> {{ t('trip.cancel') }}</button>
+                    <button v-if="['planned', 'accepted'].includes(trip.status) && can('trips.delete')" class="btn btn-rd" @click="cancelForm.startFresh(); openModal('cancel')"><AppIcon name="x" /> {{ t('trip.cancel') }}</button>
                     <button v-if="nextStep && nextAllowed" class="btn btn-cu" @click="doNext"><AppIcon name="arrow" /> {{ t('trip.next.' + nextStep) }}</button>
                 </div>
             </div>
@@ -217,7 +217,7 @@ const pendingCount = computed(() => props.transfers.filter((x) => x.status === '
                     <div class="pn-h">
                         <div><h3><AppIcon name="receipt" />{{ t('trip.revenue') }}</h3></div>
                         <div style="display:flex;gap:6px">
-                            <button v-if="open && can('trips.edit')" class="btn btn-ln btn-sm" @click="chargeForm.reset(); chargeForm.clearErrors(); openModal('charge')"><AppIcon name="plus" /> {{ t('trip.addCharge') }}</button>
+                            <button v-if="open && can('trips.edit')" class="btn btn-ln btn-sm" @click="chargeForm.startFresh(); openModal('charge')"><AppIcon name="plus" /> {{ t('trip.addCharge') }}</button>
                             <button v-if="open && can('trip_expenses.create')" class="btn btn-cu btn-sm" @click="openExpense()"><AppIcon name="plus" /> {{ t('trip.addExpense') }}</button>
                         </div>
                     </div>
@@ -313,7 +313,7 @@ const pendingCount = computed(() => props.transfers.filter((x) => x.status === '
                 <!-- Cash from the client -->
                 <div class="pn">
                     <div class="pn-h"><div><h3><AppIcon name="hand" />{{ t('trip.cash') }}</h3><div class="s">{{ t('trip.cashSub') }}</div></div>
-                        <button v-if="started && trip.driver && can('wallet_transfers.create')" class="btn btn-ln btn-sm" @click="cashForm.reset(); cashForm.clearErrors(); cashForm.received_at = nowLocal(); openModal('cash')"><AppIcon name="plus" /> {{ t('trip.recordCash') }}</button></div>
+                        <button v-if="started && trip.driver && can('wallet_transfers.create')" class="btn btn-ln btn-sm" @click="cashForm.startFresh({ received_at: nowLocal() }); openModal('cash')"><AppIcon name="plus" /> {{ t('trip.recordCash') }}</button></div>
                     <div v-if="!collections.length" class="empty">{{ t('trip.noCash') }}</div>
                     <div v-else class="rowlist">
                         <div v-for="c in collections" :key="c.id" class="r">
@@ -362,7 +362,7 @@ const pendingCount = computed(() => props.transfers.filter((x) => x.status === '
                         </div>
                         <div class="wal w-co">
                             <div class="wh"><span class="ic"><AppIcon name="hand" /></span><div><b>{{ t('trip.collectionsW') }}</b><span>{{ t('trip.collectionsSub') }}</span></div>
-                                <button v-if="started && can('wallet_transfers.create') && available > 0" class="btn btn-ln btn-sm" style="margin-inline-start:auto" @click="transferForm.reset(); transferForm.clearErrors(); openModal('transfer')"><AppIcon name="swap" /> {{ t('trip.transfer') }}</button></div>
+                                <button v-if="started && can('wallet_transfers.create') && available > 0" class="btn btn-ln btn-sm" style="margin-inline-start:auto" @click="transferForm.startFresh(); openModal('transfer')"><AppIcon name="swap" /> {{ t('trip.transfer') }}</button></div>
                             <div class="bal">{{ money(wallets.collections.balance) }}</div>
                             <div class="flow">
                                 <div><span>{{ t('trip.received') }}</span><b>{{ money(wallets.collections.received) }}</b></div>
@@ -402,7 +402,7 @@ const pendingCount = computed(() => props.transfers.filter((x) => x.status === '
                     <template v-if="settlement && !trip.settlement">
                         <div v-for="b in settlement.blockers" :key="b.code" class="note rd" style="margin-top:8px"><AppIcon name="lock" /><div>{{ t('trip.blocked.' + b.code, { n: b.n, amount: money(b.amount) }) }}</div></div>
                         <div v-for="w in settlement.warnings" :key="w.code" class="note am" style="margin-top:8px"><AppIcon name="alert" /><div>{{ t('trip.warn.' + w.code, { n: w.n, amount: money(w.amount) }) }}</div></div>
-                        <button v-if="can('trip_settlement.approve')" class="btn btn-cu" style="width:100%;margin-top:12px" :disabled="!settlement.can_settle" @click="settleForm.reset(); openModal('settle')"><AppIcon name="lock" /> {{ t('trip.settleBtn') }}</button>
+                        <button v-if="can('trip_settlement.approve')" class="btn btn-cu" style="width:100%;margin-top:12px" :disabled="!settlement.can_settle" @click="settleForm.startFresh(); openModal('settle')"><AppIcon name="lock" /> {{ t('trip.settleBtn') }}</button>
                         <p v-else class="xs mu" style="margin:10px 0 0">{{ t('trip.needsSettlePerm') }}</p>
                     </template>
                     <p v-if="trip.settlement" class="xs mu" style="margin:10px 0 0">{{ t('trip.settledOn', { date: when(trip.settlement.at), name: trip.settlement.by ?? '—' }) }}<template v-if="trip.settlement.received_by"> · {{ t('trip.receivedByLabel', { name: trip.settlement.received_by }) }}</template><template v-if="trip.settlement.note"> · {{ trip.settlement.note }}</template></p>

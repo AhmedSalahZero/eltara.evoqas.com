@@ -26,6 +26,7 @@ import Pagination from '@/Components/Pagination.vue';
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import { usePermissions } from '@/composables/usePermissions';
+import { useBlankForm } from '@/composables/useBlankForm';
 import { useI18n } from '@/lang/i18n';
 import { date, money, num } from '@/Utils/format';
 
@@ -45,13 +46,12 @@ const expanded = ref(null);
 
 // ── Link trips to an invoice ────────────────────────────────────
 const linkOpen = ref(false);
-const link = useForm({ customer_id: '', number: '', issued_on: '', note: '', trip_ids: [] });
+const link = useBlankForm({ customer_id: '', number: '', issued_on: '', note: '', trip_ids: [] });
 const candidates = computed(() => props.open.filter((x) => x.customer.id === Number(link.customer_id)));
 const chosenValue = computed(() => candidates.value.filter((x) => link.trip_ids.includes(x.id)).reduce((s, x) => s + x.value, 0));
 
 function openLink(trip = null) {
-    link.reset(); link.clearErrors();
-    if (trip) { link.customer_id = trip.customer.id; link.trip_ids = [trip.id]; }
+    link.startFresh(trip ? { customer_id: trip.customer.id, trip_ids: [trip.id] } : {});
     linkOpen.value = true;
 }
 watch(() => link.customer_id, () => { if (linkOpen.value && !link.processing) link.trip_ids = link.trip_ids.filter((id) => candidates.value.some((c) => c.id === id)); });

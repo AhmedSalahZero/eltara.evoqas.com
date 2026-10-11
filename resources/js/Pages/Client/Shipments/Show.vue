@@ -23,6 +23,7 @@ import Modal from '@/Components/Modal.vue';
 import Field from '@/Components/Field.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import { useI18n } from '@/lang/i18n';
+import { useBlankForm } from '@/composables/useBlankForm';
 import { date, money, num, time } from '@/Utils/format';
 
 const props = defineProps({ trip: Object, timeline: Array, collections: Array, rating: Object, canRate: Boolean });
@@ -40,7 +41,7 @@ const rate = () => rateForm.post(route('client.shipments.rate', props.trip.id), 
 const cState = { confirmed: 'gn', awaiting_client: 'am', awaiting_driver: 'am', disputed: 'rd', cancelled: 'pl' };
 const confirm = (c) => router.post(route('client.cash.confirm', c.id), {}, { preserveScroll: true });
 const disputing = ref(null);
-const disputeForm = useForm({ note: '' });
+const disputeForm = useBlankForm({ note: '' });
 const dispute = () => disputeForm.post(route('client.cash.dispute', disputing.value.id), { preserveScroll: true, onSuccess: () => (disputing.value = null) });
 
 const complaint = ref(false);
@@ -90,7 +91,7 @@ const sendCash = () => cashForm.post(route('client.cash.record'), { preserveScro
                         </div>
                         <div v-if="c.state === 'awaiting_client'" class="two-side">
                             <button class="btn btn-gn btn-sm" @click="confirm(c)"><AppIcon name="check" /> {{ t('cp.confirm') }}</button>
-                            <button class="btn btn-rd btn-sm" @click="disputing = c; disputeForm.reset()">{{ t('cp.dispute') }}</button>
+                            <button class="btn btn-rd btn-sm" @click="disputing = c; disputeForm.startFresh()">{{ t('cp.dispute') }}</button>
                         </div>
                     </div></div>
                 </div>

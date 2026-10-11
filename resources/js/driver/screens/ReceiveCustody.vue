@@ -26,13 +26,21 @@ const router = useRouter();
 const trip = computed(() => view.value.trips.find((x) => x.id === Number(route.params.id)));
 const signature = ref(null);
 const error = ref('');
+const saving = ref(false);
 watch(signature, () => (error.value = ''));
 
 async function save() {
+    if (saving.value) return; // a second tap while the first is still being saved would record the entry twice
     error.value = '';
     if (!signature.value) return (error.value = t('driver.signatureRequired'));
 
-    await act('trip.custody_receive', { trip_id: trip.value.id, signature: signature.value }, true);
+    saving.value = true;
+    try {
+        await act('trip.custody_receive', { trip_id: trip.value.id, signature: signature.value }, true);
+    } catch (e) {
+        saving.value = false; // the phone could not save it: let the driver try again
+        throw e;
+    }
     router.replace({ name: 'trip', params: { id: trip.value.id } });
 }
 </script>
@@ -56,6 +64,6 @@ async function save() {
         </template>
 
         <SignaturePad v-model="signature" :error="error" />
-        <button type="submit" class="bigbtn">{{ t('driver.confirmReceipt') }}</button>
+        <button type="submit" class="bigbtn" :disabled="saving">{{ t('driver.confirmReceipt') }}</button>
     </form>
 </template>

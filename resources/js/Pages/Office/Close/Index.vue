@@ -28,6 +28,7 @@ import TripStatus from '@/Components/TripStatus.vue';
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import { usePermissions } from '@/composables/usePermissions';
+import { useBlankForm } from '@/composables/useBlankForm';
 import { useI18n } from '@/lang/i18n';
 import { date, money, num } from '@/Utils/format';
 
@@ -65,16 +66,16 @@ const doDelLine = () => router.delete(route('office.close.lines.destroy', delLin
 
 // ── Import ──────────────────────────────────────────────────────
 const importOpen = ref(false);
-const imp = useForm({ month: '', file: null, replace: false });
-function openImport() { imp.reset(); imp.clearErrors(); imp.month = props.summary.month; importOpen.value = true; }
+const imp = useBlankForm({ month: '', file: null, replace: false });
+function openImport() { imp.startFresh({ month: props.summary.month }); importOpen.value = true; }
 function saveImport() { imp.post(route('office.close.import'), { forceFormData: true, preserveScroll: true, onSuccess: () => (importOpen.value = false) }); }
 
 // ── Close / re-open ─────────────────────────────────────────────
 const closing = ref(false);
 const doClose = () => router.post(route('office.close.run'), { month: props.summary.month }, { preserveScroll: true, onFinish: () => (closing.value = false) });
 const reopenOpen = ref(false);
-const reopen = useForm({ month: '', reason: '' });
-function openReopen() { reopen.reset(); reopen.clearErrors(); reopen.month = props.summary.month; reopenOpen.value = true; }
+const reopen = useBlankForm({ month: '', reason: '' });
+function openReopen() { reopen.startFresh({ month: props.summary.month }); reopenOpen.value = true; }
 function saveReopen() { reopen.post(route('office.close.reopen'), { preserveScroll: true, onSuccess: () => (reopenOpen.value = false) }); }
 
 const stateColor = { closed: 'gn', reopened: 'am', open: 'pl' };

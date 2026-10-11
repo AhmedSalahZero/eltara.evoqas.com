@@ -27,7 +27,10 @@ const FIELDS = { name: '', mobile: '', pin: '', license_number: '', license_expi
 const form = useForm({ ...FIELDS });
 const editing = computed(() => !!props.driver);
 
-watch(() => [props.show, props.driver], () => {
+// Re-load the saved values only when the pop-up opens/closes or a DIFFERENT driver is chosen.
+// (Watching the driver object itself also fired after a refused save, because the
+// server sends a fresh copy of the page — that wiped what the person had typed.)
+watch(() => `${props.show}|${props.driver?.id ?? ''}`, () => {
     const values = { ...FIELDS };
     if (props.driver) for (const k of Object.keys(FIELDS)) values[k] = props.driver[k] ?? '';
     values.pin = '';

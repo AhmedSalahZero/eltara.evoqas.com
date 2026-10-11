@@ -37,7 +37,10 @@ const FIELDS = {
 const form = useForm({ ...FIELDS });
 const editing = computed(() => !!props.vehicle);
 
-watch(() => [props.show, props.vehicle], () => {
+// Re-load the saved values only when the pop-up opens/closes or a DIFFERENT vehicle is chosen.
+// (Watching the vehicle object itself also fired after a refused save, because the
+// server sends a fresh copy of the page — that wiped what the person had typed.)
+watch(() => `${props.show}|${props.vehicle?.id ?? ''}`, () => {
     const values = { ...FIELDS };
     if (props.vehicle) for (const k of Object.keys(FIELDS)) values[k] = props.vehicle[k] ?? '';
     form.defaults(values);

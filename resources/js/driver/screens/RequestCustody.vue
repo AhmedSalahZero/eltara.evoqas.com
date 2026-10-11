@@ -23,12 +23,20 @@ const router = useRouter();
 const trip = computed(() => view.value.trips.find((x) => x.id === Number(route.params.id)));
 const form = reactive({ amount: '', note: '' });
 const error = ref('');
+const saving = ref(false);
 
 async function save() {
+    if (saving.value) return; // a second tap while the first is still being saved would record the entry twice
     error.value = '';
     if (!(Number(form.amount) > 0)) return (error.value = t('driver.amountPositive'));
 
-    await act('trip.custody_request', { trip_id: trip.value.id, amount: Number(form.amount), note: form.note.trim() || null }, true);
+    saving.value = true;
+    try {
+        await act('trip.custody_request', { trip_id: trip.value.id, amount: Number(form.amount), note: form.note.trim() || null }, true);
+    } catch (e) {
+        saving.value = false; // the phone could not save it: let the driver try again
+        throw e;
+    }
     router.replace({ name: 'trip', params: { id: trip.value.id } });
 }
 </script>
@@ -49,6 +57,6 @@ async function save() {
             <span v-if="error" class="err">{{ error }}</span>
         </label>
         <label class="fld"><span class="fl">{{ t('driver.why') }}</span><input v-model="form.note" type="text" maxlength="250"></label>
-        <button type="submit" class="bigbtn">{{ t('driver.sendRequest') }}</button>
+        <button type="submit" class="bigbtn" :disabled="saving">{{ t('driver.sendRequest') }}</button>
     </form>
 </template>

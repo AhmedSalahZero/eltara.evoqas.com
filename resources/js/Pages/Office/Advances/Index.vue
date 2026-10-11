@@ -23,6 +23,7 @@ import Field from '@/Components/Field.vue';
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import { usePermissions } from '@/composables/usePermissions';
+import { useBlankForm } from '@/composables/useBlankForm';
 import { useI18n } from '@/lang/i18n';
 import { date, money, num } from '@/Utils/format';
 
@@ -41,9 +42,9 @@ const nothingToApply = computed(() => props.payroll.every((r) => r.due <= 0 || r
 
 // ── Give an advance ─────────────────────────────────────────────
 const giveOpen = ref(false);
-const give = useForm({ driver_id: '', amount: '', monthly_instalment: '', reason: '' });
+const give = useBlankForm({ driver_id: '', amount: '', monthly_instalment: '', reason: '' });
 const driverSalary = computed(() => props.options?.drivers.find((d) => d.id === Number(give.driver_id))?.salary);
-function openGive() { give.reset(); give.clearErrors(); giveOpen.value = true; }
+function openGive() { give.startFresh(); giveOpen.value = true; }
 function saveGive() {
     give.transform((d) => ({ ...d, monthly_instalment: d.monthly_instalment === '' ? null : d.monthly_instalment }))
         .post(route('office.advances.store'), { preserveScroll: true, onSuccess: () => (giveOpen.value = false) });
@@ -60,8 +61,8 @@ function saveEdit() {
 
 // ── Cash repayment ──────────────────────────────────────────────
 const repaying = ref(null);
-const repay = useForm({ amount: '', note: '' });
-function openRepay(a) { repaying.value = a; repay.reset(); repay.clearErrors(); repay.amount = a.remaining; }
+const repay = useBlankForm({ amount: '', note: '' });
+function openRepay(a) { repaying.value = a; repay.startFresh({ amount: a.remaining }); }
 function saveRepay() {
     repay.post(route('office.advances.repay', repaying.value.id), { preserveScroll: true, onSuccess: () => (repaying.value = null) });
 }

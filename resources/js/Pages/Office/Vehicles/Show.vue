@@ -10,7 +10,7 @@
   ══════════════════════════════════════════════════════════════════
 -->
 <script setup>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import PortalLayout from '@/Layouts/PortalLayout.vue';
 import Kpi from '@/Components/Kpi.vue';
@@ -29,7 +29,7 @@ const { t } = useI18n();
 const { can } = usePermissions();
 const editOpen = ref(false);
 const confirmDelete = ref(false);
-const plateText = `${props.vehicle.plate_number} ${props.vehicle.plate_letters}`;
+const plateText = computed(() => `${props.vehicle.plate_number} ${props.vehicle.plate_letters}`);
 const remove = () => router.delete(route('office.vehicles.destroy', props.vehicle.id));
 </script>
 

@@ -24,6 +24,7 @@ const router = useRouter();
 const trip = computed(() => view.value.trips.find((x) => x.id === Number(route.params.id)));
 const form = reactive({ amount: '', reason: '' });
 const errors = reactive({});
+const saving = ref(false);
 
 const available = computed(() => trip.value?.wallets.collections ?? 0);
 const policy = computed(() => {
@@ -34,6 +35,7 @@ const policy = computed(() => {
 });
 
 async function save() {
+    if (saving.value) return; // a second tap while the first is still being saved would record the entry twice
     Object.keys(errors).forEach((k) => delete errors[k]);
     const amount = Number(form.amount);
     if (!(amount > 0)) errors.amount = t('driver.amountPositive');
@@ -41,7 +43,13 @@ async function save() {
     if (!form.reason.trim()) errors.reason = t('driver.reasonRequired');
     if (Object.keys(errors).length) return;
 
-    await act('trip.transfer', { trip_id: trip.value.id, amount, reason: form.reason.trim() });
+    saving.value = true;
+    try {
+        await act('trip.transfer', { trip_id: trip.value.id, amount, reason: form.reason.trim() });
+    } catch (e) {
+        saving.value = false; // the phone could not save it: let the driver try again
+        throw e;
+    }
     router.replace({ name: 'trip', params: { id: trip.value.id } });
 }
 </script>
@@ -73,6 +81,6 @@ async function save() {
             {{ policy === 'auto' ? t('driver.policyAuto') : policy === 'limit' ? t('driver.policyLimit', { limit: money(trip.auto_transfer_limit) }) : t('driver.policyApproval') }}
         </p>
 
-        <button type="submit" class="bigbtn">{{ t('driver.sendRequest') }}</button>
+        <button type="submit" class="bigbtn" :disabled="saving">{{ t('driver.sendRequest') }}</button>
     </form>
 </template>

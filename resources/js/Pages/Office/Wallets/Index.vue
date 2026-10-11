@@ -17,7 +17,7 @@
 -->
 <script setup>
 import { ref } from 'vue';
-import { Link, router, useForm } from '@inertiajs/vue3';
+import { Link, router } from '@inertiajs/vue3';
 import PortalLayout from '@/Layouts/PortalLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import Kpi from '@/Components/Kpi.vue';
@@ -26,6 +26,7 @@ import Modal from '@/Components/Modal.vue';
 import Field from '@/Components/Field.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import { usePermissions } from '@/composables/usePermissions';
+import { useBlankForm } from '@/composables/useBlankForm';
 import { useI18n } from '@/lang/i18n';
 import { date, money, num, time } from '@/Utils/format';
 
@@ -39,7 +40,7 @@ const when = (iso) => (iso ? `${date(iso)} ${time(iso)}` : '—');
 const approve = (x) => router.post(route('office.transfers.approve', x.id), {}, { preserveScroll: true });
 const review = (x) => router.post(route('office.transfers.review', x.id), {}, { preserveScroll: true });
 const rejecting = ref(null);
-const rejectForm = useForm({ note: '' });
+const rejectForm = useBlankForm({ note: '' });
 const reject = () => rejectForm.post(route('office.transfers.reject', rejecting.value.id), { preserveScroll: true, onSuccess: () => (rejecting.value = null) });
 
 const tabs = [['pending', 'pending'], ['review', 'review'], ['settle', 'settle'], ['balances', null]];
@@ -89,7 +90,7 @@ const tabs = [['pending', 'pending'], ['review', 'review'], ['settle', 'settle']
                                 <template v-if="tab === 'pending' && can('wallet_transfers.approve')">
                                     <template v-if="x.can_approve">
                                         <button class="btn btn-gn btn-sm" @click="approve(x)"><AppIcon name="check" /> {{ t('trip.approve') }}</button>
-                                        <button class="btn btn-rd btn-sm" style="margin-inline-start:6px" @click="rejecting = x; rejectForm.reset()">{{ t('trip.reject') }}</button>
+                                        <button class="btn btn-rd btn-sm" style="margin-inline-start:6px" @click="rejecting = x; rejectForm.startFresh()">{{ t('trip.reject') }}</button>
                                     </template>
                                     <span v-else class="xs am">{{ t('trip.aboveLimit') }}</span>
                                 </template>

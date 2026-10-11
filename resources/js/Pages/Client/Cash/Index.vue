@@ -20,6 +20,7 @@ import Modal from '@/Components/Modal.vue';
 import Field from '@/Components/Field.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import { useI18n } from '@/lang/i18n';
+import { useBlankForm } from '@/composables/useBlankForm';
 import { date, money, time } from '@/Utils/format';
 
 const props = defineProps({ totals: Object, rows: Array, trips: Array, canRecord: Boolean, filter: String });
@@ -31,7 +32,7 @@ const go = (filter) => router.get(route('client.cash.index'), { filter }, { pres
 const confirm = (c) => router.post(route('client.cash.confirm', c.id), {}, { preserveScroll: true });
 
 const disputing = ref(null);
-const disputeForm = useForm({ note: '' });
+const disputeForm = useBlankForm({ note: '' });
 const dispute = () => disputeForm.post(route('client.cash.dispute', disputing.value.id), { preserveScroll: true, onSuccess: () => (disputing.value = null) });
 
 const recording = ref(false);
@@ -70,7 +71,7 @@ const record = () => form.post(route('client.cash.record'), { preserveScroll: tr
                         <td class="e" style="white-space:nowrap">
                             <template v-if="c.state === 'awaiting_client'">
                                 <button class="btn btn-gn btn-sm" @click="confirm(c)"><AppIcon name="check" /> {{ t('cp.confirm') }}</button>
-                                <button class="btn btn-rd btn-sm" style="margin-inline-start:6px" @click="disputing = c; disputeForm.reset()">{{ t('cp.dispute') }}</button>
+                                <button class="btn btn-rd btn-sm" style="margin-inline-start:6px" @click="disputing = c; disputeForm.startFresh()">{{ t('cp.dispute') }}</button>
                             </template>
                         </td>
                     </tr>

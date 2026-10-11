@@ -122,7 +122,7 @@ const visibleCategories = computed(() => props.categories.filter((c) => c.is_act
                 <div class="sec" style="margin-top:16px">{{ t('rt.budget') }} <span class="xs mu">· {{ t('rt.budgetHint') }}</span></div>
                 <div class="fgrid3">
                     <Field v-for="c in visibleCategories" :key="c.id" :label="c.name" :hint="t('rt.cashShare', { n: c.cash_percent })" :error="form.errors['budgets.' + c.id]">
-                        <input v-model="form.budgets[c.id]" type="number" min="0" step="10" dir="ltr">
+                        <input v-model="form.budgets[c.id]" type="number" min="0" step="any" dir="ltr">
                     </Field>
                 </div>
 

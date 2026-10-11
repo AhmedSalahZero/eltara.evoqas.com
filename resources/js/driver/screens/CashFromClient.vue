@@ -23,16 +23,24 @@ const router = useRouter();
 const trip = computed(() => view.value.trips.find((x) => x.id === Number(route.params.id)));
 const form = reactive({ amount: '', note: '', photo: null });
 const error = ref('');
+const saving = ref(false);
 const photoError = ref('');
 const photoRequired = computed(() => !!state.snapshot?.settings?.receipt_photo_required);
 
 async function save() {
+    if (saving.value) return; // a second tap while the first is still being saved would record the entry twice
     error.value = '';
     photoError.value = '';
     if (!(Number(form.amount) > 0)) return (error.value = t('driver.amountPositive'));
     if (photoRequired.value && !form.photo) return (photoError.value = t('driver.cashPhotoRequired'));
 
-    await act('trip.collection', { trip_id: trip.value.id, amount: Number(form.amount), note: form.note.trim() || null, photo: form.photo });
+    saving.value = true;
+    try {
+        await act('trip.collection', { trip_id: trip.value.id, amount: Number(form.amount), note: form.note.trim() || null, photo: form.photo });
+    } catch (e) {
+        saving.value = false; // the phone could not save it: let the driver try again
+        throw e;
+    }
     router.replace({ name: 'trip', params: { id: trip.value.id } });
 }
 </script>
@@ -53,6 +61,6 @@ async function save() {
         </label>
         <label class="fld"><span class="fl">{{ t('driver.note') }}</span><input v-model="form.note" type="text" maxlength="250"></label>
         <PhotoPicker v-model="form.photo" kind="collection" :label="t('driver.cashPhoto')" :required="photoRequired" :error="photoError" />
-        <button type="submit" class="bigbtn">{{ t('driver.saveCash') }}</button>
+        <button type="submit" class="bigbtn" :disabled="saving">{{ t('driver.saveCash') }}</button>
     </form>
 </template>

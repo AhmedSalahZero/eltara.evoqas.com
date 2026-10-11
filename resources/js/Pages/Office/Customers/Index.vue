@@ -25,6 +25,7 @@ import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 import CustomerForm from '@/Components/CustomerForm.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import { usePermissions } from '@/composables/usePermissions';
+import { useBlankForm } from '@/composables/useBlankForm';
 import { useI18n } from '@/lang/i18n';
 import { ago, money, num } from '@/Utils/format';
 
@@ -66,8 +67,8 @@ function saveRate() {
 
 // ── Client-portal users ──────────────────────────────────────────
 const inviteOpen = ref(false);
-const inviteForm = useForm({ name: '', email: '', phone: '', job_title: '', language: locale.value });
-function openInvite() { inviteForm.reset(); inviteForm.clearErrors(); inviteOpen.value = true; }
+const inviteForm = useBlankForm({ name: '', email: '', phone: '', job_title: '', language: locale.value });
+function openInvite() { inviteForm.startFresh(); inviteOpen.value = true; }
 const sendInvite = () => inviteForm.post(route('office.customers.clients.store', props.selected.id), { preserveScroll: true, onSuccess: () => (inviteOpen.value = false) });
 const toggleClient = (u) => router.post(route('office.customers.clients.toggle', [props.selected.id, u.id]), {}, { preserveScroll: true });
 const resendClient = (u) => router.post(route('office.customers.clients.link', [props.selected.id, u.id]), {}, { preserveScroll: true });
