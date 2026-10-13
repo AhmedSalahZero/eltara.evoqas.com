@@ -2,7 +2,7 @@
   ══════════════════════════════════════════════════════════════════
   El Tara — Reports hub ( /office/reports )   Scope §6.14
   Location: resources/js/Pages/Office/Reports/Index.vue
-  The 12 report cards of the demo's Reports screen. Titles and
+  The report cards. Titles and
   descriptions come from the server (lang/*/reports.php).
   ══════════════════════════════════════════════════════════════════
 -->

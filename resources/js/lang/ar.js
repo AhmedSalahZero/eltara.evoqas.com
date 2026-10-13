@@ -15,7 +15,7 @@ export default {
         signOut: 'تسجيل الخروج', profile: 'ملفي الشخصي', never: 'لم يدخل بعد', now: 'الآن',
         days: '{n} يوم', noResults: 'لا توجد نتائج لهذا البحث.', phase2: 'المرحلة 2',
         required: 'مطلوب', optional: 'اختياري',
-        total: 'الإجمالي', choose: 'اختر…', add: 'إضافة', addNew: 'إضافة جديد', nameArRequired: 'اكتب الاسم بالعربية.', somethingWrong: 'حدث خطأ. حاول مرة أخرى.',
+        total: 'الإجمالي', choose: 'اختر…', add: 'إضافة', addNew: 'إضافة جديد', nameArRequired: 'اكتب الاسم بالعربية.', nameRequired: 'اكتب الاسم.', somethingWrong: 'حدث خطأ. حاول مرة أخرى.',
     },
 
     status: { active: 'نشطة', trial: 'تجريبية', suspended: 'موقوفة', readOnly: 'للقراءة فقط', notActivated: 'لم يُفعَّل' },
@@ -169,6 +169,28 @@ export default {
              odometer: 'العداد (كم)', lastOdo: 'آخر قراءة: {n}', station: 'المحطة', paidBy: 'دُفع من', cardSub: 'كارت وقود الشركة', custodySub: 'نقدًا من عهدة السائق (للرحلات فقط)',
              tripNote: 'التموين على رحلة يُسجَّل كمصروف وقود للرحلة — ويُحسب مرة واحدة.', note: 'ملاحظة' },
         deleteConfirm: 'حذف هذا التموين؟ مصروف الرحلة (إن وُجد) يبقى كما هو.',
+    },
+
+    maintenance: {
+        title: 'الصيانة', sub: 'صيانة دورية وأعطال. الشغل المفتوح يمنع حجز الشاحنة لرحلة جديدة.', km: 'كم',
+        add: 'إضافة شغل', openNow: 'مفتوح الآن', openFoot: 'لا يمكن حجز الشاحنة', dueNow: 'مستحق', dueFoot: 'متأخر أو اقترب', jobsMonth: 'شغل هذا الشهر', costMonth: 'تكلفة هذا الشهر',
+        tabs: { open: 'مفتوح', due: 'مستحق', log: 'السجل' },
+        cols: { when: 'متى', truck: 'الشاحنة', kind: 'النوع', category: 'البند', status: 'الحالة', cost: 'التكلفة', odometer: 'العداد', workshop: 'الورشة', next: 'الاستحقاق التالي', state: 'الحالة', note: 'ملاحظة' },
+        noneOpen: 'لا يوجد شغل مفتوح.', noneDue: 'لا شيء مستحق. كل صيانة دورية مكتملة تحدد موعد التالية.', noneLog: 'لا يوجد شغل فُتح في هذا الشهر.',
+        dueHint: 'الاستحقاق يُحسب من آخر صيانة دورية مكتملة لهذه الشاحنة وهذا البند، مقارنة بالعداد واليوم.',
+        kinds: { periodic: 'دورية', emergency: 'عطل' },
+        categories: { oil: 'زيت', tyres: 'كاوتش', filters: 'فلاتر', other: 'أخرى' },
+        statuses: { open: 'مفتوح', done: 'مكتمل' },
+        states: { overdue: 'متأخر', soon: 'اقترب', ok: 'سليم' },
+        recordDue: 'تسجيل الصيانة',
+        addTitle: 'إضافة شغل', editTitle: 'تعديل الشغل',
+        noteRequired: 'مطلوبة للعطل، ولبند «أخرى».',
+        intervalHint: 'الصيانة الدورية المكتملة تحتاج كيلومترات أو أيامًا أو الاثنين.',
+        holdsTruck: 'طالما هذا الشغل مفتوح تبقى الشاحنة في الصيانة ولا تُحجز لرحلة جديدة.',
+        costOutside: 'هذه التكلفة تبقى في سجل الصيانة. ليست مصروف رحلة ولا تُضاف إلى مصروفات الشهر العامة.',
+        f: { truck: 'الشاحنة', kind: 'النوع', category: 'البند', status: 'الحالة', opened: 'فُتح', completed: 'اكتمل', odometer: 'العداد (كم)', lastOdo: 'آخر قراءة: {n}',
+             cost: 'التكلفة (ج.م)', workshop: 'الورشة', note: 'ملاحظة', intervalKm: 'كل (كم)', intervalDays: 'كل (يوم)' },
+        deleteConfirm: 'حذف هذا الشغل؟ إذا كان آخر شغل مفتوح، تعود الشاحنة متاحة.',
     },
 
     adv: {

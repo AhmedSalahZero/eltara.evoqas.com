@@ -20,18 +20,25 @@ import PortalLayout from '@/Layouts/PortalLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
 import Modal from '@/Components/Modal.vue';
 import Field from '@/Components/Field.vue';
+import NameSelect from '@/Components/NameSelect.vue';
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import { usePermissions } from '@/composables/usePermissions';
 import { useI18n } from '@/lang/i18n';
 import { money, num } from '@/Utils/format';
 
-const props = defineProps({ routes: Array, categories: Array, buffer: Number, overBudget: { type: Number, default: 15 }, filters: Object });
+const props = defineProps({ routes: Array, categories: Array, buffer: Number, overBudget: { type: Number, default: 15 }, filters: Object, places: Object });
 const { t } = useI18n();
 const { can } = usePermissions();
 
 const search = ref(props.filters.search ?? '');
 watch(search, useDebounceFn(() => router.get(route('office.routes.index'), { search: search.value || undefined }, { preserveState: true, replace: true }), 350));
+
+const addedPlaces = ref({ ar: [], en: [] });
+const placeOptions = (language) => [...new Set([...(props.places?.[language] ?? []), ...addedPlaces.value[language]])];
+const rememberPlace = (place) => {
+    if (place?.name && !addedPlaces.value[place.language]?.includes(place.name)) addedPlaces.value[place.language].push(place.name);
+};
 
 const open = ref(false);
 const editing = ref(null);
@@ -110,10 +117,14 @@ const visibleCategories = computed(() => props.categories.filter((c) => c.is_act
         <Modal :show="open" wide :title="editing ? t('rt.edit') : t('rt.add')" @close="open = false">
             <form id="route-form" @submit.prevent="save">
                 <div class="fgrid">
-                    <Field :label="`${t('rt.from')} (${t('rt.ar')})`" :error="form.errors.origin_ar"><input v-model="form.origin_ar" required></Field>
-                    <Field :label="`${t('rt.to')} (${t('rt.ar')})`" :error="form.errors.destination_ar"><input v-model="form.destination_ar" required></Field>
-                    <Field :label="`${t('rt.from')} (${t('rt.en')})`" :error="form.errors.origin_en"><input v-model="form.origin_en" dir="ltr"></Field>
-                    <Field :label="`${t('rt.to')} (${t('rt.en')})`" :error="form.errors.destination_en"><input v-model="form.destination_en" dir="ltr"></Field>
+                    <NameSelect v-model="form.origin_ar" :label="`${t('rt.from')} (${t('rt.ar')})`" :options="placeOptions('ar')" :extra="{ language: 'ar' }"
+                                :add-url="route('office.route_places.store')" :can-add="can('customers.create')" :error="form.errors.origin_ar" required @added="rememberPlace" />
+                    <NameSelect v-model="form.destination_ar" :label="`${t('rt.to')} (${t('rt.ar')})`" :options="placeOptions('ar')" :extra="{ language: 'ar' }"
+                                :add-url="route('office.route_places.store')" :can-add="can('customers.create')" :error="form.errors.destination_ar" required @added="rememberPlace" />
+                    <NameSelect v-model="form.origin_en" :label="`${t('rt.from')} (${t('rt.en')})`" :options="placeOptions('en')" :extra="{ language: 'en' }"
+                                :add-url="route('office.route_places.store')" :can-add="can('customers.create')" :error="form.errors.origin_en" @added="rememberPlace" />
+                    <NameSelect v-model="form.destination_en" :label="`${t('rt.to')} (${t('rt.en')})`" :options="placeOptions('en')" :extra="{ language: 'en' }"
+                                :add-url="route('office.route_places.store')" :can-add="can('customers.create')" :error="form.errors.destination_en" @added="rememberPlace" />
                     <Field :label="t('rt.weight')" :hint="t('rt.weightHint')" :error="form.errors.weight_tons"><input v-model="form.weight_tons" type="number" min="0" step="any" dir="ltr" required></Field>
                     <Field :label="t('rt.km')" :error="form.errors.km_round_trip"><input v-model="form.km_round_trip" type="number" min="1" dir="ltr" required></Field>
                     <Field :label="t('rt.hours')" :error="form.errors.usual_hours"><input v-model="form.usual_hours" type="number" min="0" step="0.5" dir="ltr"></Field>

@@ -13,13 +13,14 @@ use App\Models\WalletEntry;
 use App\Models\WalletTransfer;
 use App\Services\Closing\TrueProfit;
 use App\Services\Fuel\FuelAnalysis;
+use App\Services\Maintenance\MaintenanceAnalysis;
 use App\Services\Trips\TripFigures;
 use App\Support\DocumentExpiry;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 // ══════════════════════════════════════════════════════════════════
-//  El Tara — ReportService (the 12 reports of Scope §6.14)
+//  El Tara — ReportService (the 13 reports of Scope §6.14)
 //  Location: app/Services/Reports/ReportService.php
 //
 //  One place builds every report, so the screen, the Excel file and
@@ -41,12 +42,12 @@ use Illuminate\Support\Collection;
 
 final class ReportService
 {
-    public const KEYS = ['trips', 'vehicles', 'drivers', 'customers', 'routes', 'wallet', 'transfers', 'close', 'fuel', 'documents', 'no_invoice', 'budget'];
+    public const KEYS = ['trips', 'vehicles', 'drivers', 'customers', 'routes', 'wallet', 'transfers', 'close', 'fuel', 'maintenance', 'documents', 'no_invoice', 'budget'];
 
     /** Icons of the hub cards, as on the demo's Reports screen. */
     public const ICONS = [
         'trips' => 'chart', 'vehicles' => 'truck', 'drivers' => 'idcard', 'customers' => 'building', 'routes' => 'route', 'wallet' => 'wallet',
-        'transfers' => 'swap', 'close' => 'lock', 'fuel' => 'fuel', 'documents' => 'file', 'no_invoice' => 'link', 'budget' => 'scale',
+        'transfers' => 'swap', 'close' => 'lock', 'fuel' => 'fuel', 'maintenance' => 'wrench', 'documents' => 'file', 'no_invoice' => 'link', 'budget' => 'scale',
     ];
 
     private const LIMIT = 5000;
@@ -54,7 +55,11 @@ final class ReportService
     /** Set when ANY query of the report being built had more rows than LIMIT (so the report is incomplete). */
     private bool $cut = false;
 
-    public function __construct(private readonly TrueProfit $trueProfit, private readonly FuelAnalysis $fuel) {}
+    public function __construct(
+        private readonly TrueProfit $trueProfit,
+        private readonly FuelAnalysis $fuel,
+        private readonly MaintenanceAnalysis $maintenance,
+    ) {}
 
     /** The filters of a request, cleaned: dates (default = this month so far), ids. */
     public static function filters(array $input): array
@@ -95,7 +100,8 @@ final class ReportService
             'wallet'     => $this->wallet($filters),
             'transfers'  => $this->transfers($filters),
             'close'      => $this->close($filters),
-            'fuel'       => $this->fuelReport($companyId, $filters),
+            'fuel'        => $this->fuelReport($companyId, $filters),
+            'maintenance' => $this->maintenanceReport($companyId, $filters),
             'documents'  => $this->documents($filters),
             'no_invoice' => $this->noInvoice($filters),
             'budget'     => $this->budget($companyId, $filters),
@@ -435,7 +441,47 @@ final class ReportService
         ];
     }
 
-    // ── 10 · Expiring documents ────────────────────────────────────
+    // ── 10 · Maintenance log ───────────────────────────────────────
+
+    private function maintenanceReport(int $companyId, array $f): array
+    {
+        [$from, $to] = $this->range($f);
+        $a = $this->maintenance->period($from, $to, $companyId, $f['vehicle_id']);
+
+        $rows = array_map(function ($x) {
+            $due = [];
+            if ($x['next_due_km'] !== null) {
+                $due[] = $x['next_due_km'].' '.__('reports.km_suffix');
+            }
+            if ($x['next_due_on']) {
+                $due[] = $x['next_due_on'];
+            }
+
+            return [
+                'date'     => $x['opened_at'] ? substr($x['opened_at'], 0, 10) : null,
+                'vehicle'  => trim(($x['vehicle']['number'] ?? '—').' '.($x['vehicle']['letters'] ?? '')),
+                'kind'     => $this->word('maintenance_kind', $x['kind']),
+                'category' => $this->word('maintenance_category', $x['category']),
+                'status'   => $this->word('maintenance_status', $x['status']),
+                'amount'   => $x['cost'],
+                'odometer' => $x['odometer_km'],
+                'next_due' => implode(' · ', $due),
+                'state'    => $x['active'] && $x['state'] ? $this->word('maintenance_state', $x['state']) : '',
+            ];
+        }, $a['rows']);
+
+        $t = $a['totals'];
+
+        return [
+            'columns'   => [['date', 'date'], ['vehicle', 'text'], ['kind', 'text'], ['category', 'text'], ['status', 'text'], ['amount', 'money'], ['odometer', 'num'], ['next_due', 'text'], ['state', 'text']],
+            'rows'      => $rows,
+            'truncated' => $a['truncated'],
+            'totals'    => ['amount' => $t['amount'], 'jobs' => $t['jobs'], 'open' => $t['open']],
+            'note'      => __('reports.maintenance_note', ['jobs' => $t['jobs'], 'open' => $t['open']]),
+        ];
+    }
+
+    // ── 11 · Expiring documents ────────────────────────────────────
 
     private function documents(array $f): array
     {
@@ -463,7 +509,7 @@ final class ReportService
         ];
     }
 
-    // ── 11 · Trips without an invoice ──────────────────────────────
+    // ── 12 · Trips without an invoice ──────────────────────────────
 
     private function noInvoice(array $f): array
     {
@@ -486,7 +532,7 @@ final class ReportService
         ];
     }
 
-    // ── 12 · Budget vs actual ──────────────────────────────────────
+    // ── 13 · Budget vs actual ──────────────────────────────────────
 
     private function budget(int $companyId, array $f): array
     {

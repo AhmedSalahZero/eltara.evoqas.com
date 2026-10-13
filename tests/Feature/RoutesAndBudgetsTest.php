@@ -6,6 +6,7 @@ use App\Models\AuditLog;
 use App\Models\Customer;
 use App\Models\ExpenseCategory;
 use App\Models\RateCard;
+use App\Models\RoutePlaceName;
 use App\Models\TripRoute;
 use App\Services\CompanyDefaults;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -28,11 +29,19 @@ class RoutesAndBudgetsTest extends TestCase
         CompanyDefaults::ensure($companyId);
         $cats = ExpenseCategory::query()->withoutGlobalScopes()->where('company_id', $companyId)->pluck('id', 'code');
 
-        return array_merge([
+        $payload = array_merge([
             'origin_ar' => 'العبور', 'origin_en' => 'Obour', 'destination_ar' => 'ميناء الإسكندرية', 'destination_en' => 'Alexandria Port',
             'weight_tons' => 5, 'km_round_trip' => 450, 'usual_hours' => 17, 'is_active' => true,
             'budgets' => [$cats['fuel'] => 3450, $cats['toll'] => 260, $cats['weigh'] => 120, $cats['allow'] => 600, $cats['labor'] => 450, $cats['night'] => ''],
         ], $overrides);
+
+        foreach (['origin_ar' => 'ar', 'destination_ar' => 'ar', 'origin_en' => 'en', 'destination_en' => 'en'] as $field => $language) {
+            if (! empty($payload[$field])) {
+                RoutePlaceName::query()->firstOrCreate(['company_id' => $companyId, 'language' => $language, 'name' => $payload[$field]]);
+            }
+        }
+
+        return $payload;
     }
 
     public function test_a_route_needs_its_weight_and_shows_it_in_its_name(): void

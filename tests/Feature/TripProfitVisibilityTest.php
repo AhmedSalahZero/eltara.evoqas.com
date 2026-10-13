@@ -78,6 +78,6 @@ class TripProfitVisibilityTest extends TestCase
     {
         $this->assertTrue(\App\Support\Permissions::exists('trips.see_profit'));
         $this->assertFalse(\App\Support\Permissions::exists('fuel.see_profit'));
-        $this->assertCount(16, config('permissions.features'));
+        $this->assertCount(17, config('permissions.features'));
     }
 }

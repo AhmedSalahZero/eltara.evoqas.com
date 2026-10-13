@@ -93,6 +93,6 @@ const formOpen = ref(false);
         </div>
         <Pagination :links="vehicles.links" />
 
-        <VehicleForm :show="formOpen" :drivers="options.drivers" :types="options.types" @close="formOpen = false" />
+        <VehicleForm :show="formOpen" :drivers="options.drivers" :types="options.types" :insurers="options.insurers" @close="formOpen = false" />
     </PortalLayout>
 </template>

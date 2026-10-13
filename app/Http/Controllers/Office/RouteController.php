@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Office;
 
 use App\Http\Controllers\Controller;
 use App\Models\ExpenseCategory;
+use App\Models\RoutePlaceName;
 use App\Models\TripRoute;
 use App\Models\TripRouteBudget;
 use App\Services\CompanyDefaults;
@@ -57,6 +58,10 @@ class RouteController extends Controller
             'buffer'     => $settings->custody_buffer_percent,
             'overBudget' => $settings->over_budget_percent,
             'filters'    => ['search' => $search],
+            'places'     => [
+                'ar' => RoutePlaceName::query()->where('language', 'ar')->orderBy('name')->pluck('name')->values(),
+                'en' => RoutePlaceName::query()->where('language', 'en')->orderBy('name')->pluck('name')->values(),
+            ],
         ]);
     }
 
@@ -113,12 +118,17 @@ class RouteController extends Controller
     private function validated(Request $request): array
     {
         $companyId = $request->user('web')->company_id;
+        $place = fn (string $language) => Rule::exists('route_place_names', 'name')->where(fn ($q) => $q->where('company_id', $companyId)->where('language', $language));
+        foreach (['origin_ar', 'origin_en', 'destination_ar', 'destination_en'] as $field) {
+            $value = trim((string) $request->input($field));
+            $request->merge([$field => $value === '' ? null : $value]);
+        }
 
         $data = $request->validate([
-            'origin_ar'      => ['required', 'string', 'max:80'],
-            'origin_en'      => ['nullable', 'string', 'max:80'],
-            'destination_ar' => ['required', 'string', 'max:80'],
-            'destination_en' => ['nullable', 'string', 'max:80'],
+            'origin_ar'      => ['required', 'string', 'max:80', $place('ar')],
+            'origin_en'      => ['nullable', 'string', 'max:80', $place('en')],
+            'destination_ar' => ['required', 'string', 'max:80', $place('ar')],
+            'destination_en' => ['nullable', 'string', 'max:80', $place('en')],
             'weight_tons'    => ['required', 'numeric', 'gt:0', 'max:1000'],
             'km_round_trip'  => ['required', 'integer', 'min:1', 'max:20000'],
             'usual_hours'    => ['nullable', 'numeric', 'min:0', 'max:500'],
@@ -126,6 +136,9 @@ class RouteController extends Controller
             'is_active'      => ['required', 'boolean'],
             'budgets'        => ['present', 'array'],
             'budgets.*'      => ['nullable', 'numeric', 'min:0', 'max:10000000'],
+        ], [
+            'origin_ar.exists' => __('errors.not_in_list'), 'destination_ar.exists' => __('errors.not_in_list'),
+            'origin_en.exists' => __('errors.not_in_list'), 'destination_en.exists' => __('errors.not_in_list'),
         ]);
 
         $validIds = ExpenseCategory::query()->where('company_id', $companyId)->pluck('id')->all();

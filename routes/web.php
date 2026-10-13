@@ -14,8 +14,10 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Office\AdvanceController as OfficeAdvanceController;
 use App\Http\Controllers\Office\ClientRequestController as OfficeClientRequestController;
 use App\Http\Controllers\Office\FuelController as OfficeFuelController;
+use App\Http\Controllers\Office\MaintenanceController as OfficeMaintenanceController;
 use App\Http\Controllers\Office\InvoiceController as OfficeInvoiceController;
 use App\Http\Controllers\Office\MonthCloseController as OfficeMonthCloseController;
+use App\Http\Controllers\Office\NameListController as OfficeNameListController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Office\AuditController as OfficeAuditController;
 use App\Http\Controllers\Office\DashboardController as OfficeDashboardController;
@@ -190,6 +192,9 @@ Route::prefix('office')->name('office.')->middleware(['auth:web', 'office', 'rea
     Route::patch('settings/categories/{category}', [OfficeSettingsController::class, 'updateCategory'])->middleware('can:settings.edit')->name('settings.categories.update');
 
     // Truck types and cargo (goods): add from the forms, rename / hide from Company settings
+    Route::post('insurance-companies', [OfficeNameListController::class, 'storeInsurance'])->middleware('can:vehicles.create')->name('insurance_companies.store');
+    Route::post('route-places', [OfficeNameListController::class, 'storePlace'])->middleware('can:customers.create')->name('route_places.store');
+
     Route::post('vehicle-types', [OfficeLookupListController::class, 'store'])->defaults('kind', 'vehicle')->middleware('can:vehicles.create')->name('vehicle_types.store');
     Route::patch('vehicle-types/{id}', [OfficeLookupListController::class, 'update'])->defaults('kind', 'vehicle')->middleware('can:settings.edit')->name('vehicle_types.update');
     Route::post('cargo-types', [OfficeLookupListController::class, 'store'])->defaults('kind', 'cargo')->middleware('can:trips.create')->name('cargo_types.store');
@@ -207,6 +212,11 @@ Route::prefix('office')->name('office.')->middleware(['auth:web', 'office', 'rea
     Route::post('fuel', [OfficeFuelController::class, 'store'])->middleware('can:fuel.create')->name('fuel.store');
     Route::patch('fuel/{entry}', [OfficeFuelController::class, 'update'])->middleware('can:fuel.edit')->name('fuel.update');
     Route::delete('fuel/{entry}', [OfficeFuelController::class, 'destroy'])->middleware('can:fuel.delete')->name('fuel.destroy');
+
+    Route::get('maintenance', [OfficeMaintenanceController::class, 'index'])->middleware('can:maintenance.view')->name('maintenance.index');
+    Route::post('maintenance', [OfficeMaintenanceController::class, 'store'])->middleware('can:maintenance.create')->name('maintenance.store');
+    Route::patch('maintenance/{job}', [OfficeMaintenanceController::class, 'update'])->middleware('can:maintenance.edit')->name('maintenance.update');
+    Route::delete('maintenance/{job}', [OfficeMaintenanceController::class, 'destroy'])->middleware('can:maintenance.delete')->name('maintenance.destroy');
 
     Route::get('advances', [OfficeAdvanceController::class, 'index'])->middleware('can:driver_advances.view')->name('advances.index');
     Route::get('advances/export', [OfficeAdvanceController::class, 'export'])->middleware('can:driver_advances.view')->name('advances.export');

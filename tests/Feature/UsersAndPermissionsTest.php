@@ -26,7 +26,7 @@ class UsersAndPermissionsTest extends TestCase
         $admin = $this->companyAdmin();
 
         $this->actingAs($admin, 'web')->get('/office/users')->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->component('Office/Users/Index')->has('users', 1)->has('matrix', 16)->where('limits.office_used', 1));
+            ->assertInertia(fn (Assert $page) => $page->component('Office/Users/Index')->has('users', 1)->has('matrix', 17)->where('limits.office_used', 1));
     }
 
     public function test_an_office_user_without_the_permission_cannot_open_or_change_users(): void

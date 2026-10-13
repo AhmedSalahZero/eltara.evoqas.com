@@ -56,6 +56,7 @@ return [
         'drivers'          => ['en' => 'Drivers',                'ar' => 'السائقون',                'actions' => ['view', 'create', 'edit', 'delete']],
         'customers'        => ['en' => 'Customers & rate cards', 'ar' => 'العملاء وقوائم الأسعار',  'actions' => ['view', 'create', 'edit', 'delete']],
         'fuel'             => ['en' => 'Fuel',                   'ar' => 'الوقود',                  'actions' => ['view', 'create', 'edit', 'delete']],
+        'maintenance'      => ['en' => 'Maintenance',            'ar' => 'الصيانة',                 'actions' => ['view', 'create', 'edit', 'delete']],
         'driver_advances'  => ['en' => 'Driver advances',        'ar' => 'سلف السائقين',            'actions' => ['view', 'create', 'edit', 'approve', 'delete']],
         'invoice_links'    => ['en' => 'Invoice numbers',        'ar' => 'ربط أرقام الفواتير',      'actions' => ['view', 'create', 'edit', 'delete']],
         'month_close'      => ['en' => 'Month close',            'ar' => 'إقفال الشهر',             'actions' => ['view', 'create', 'approve', 'reopen']],

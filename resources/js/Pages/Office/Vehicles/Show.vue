@@ -106,7 +106,7 @@ const remove = () => router.delete(route('office.vehicles.destroy', props.vehicl
             </div>
         </div>
 
-        <VehicleForm :show="editOpen" :vehicle="vehicle" :drivers="options.drivers" :types="options.types" @close="editOpen = false" />
+        <VehicleForm :show="editOpen" :vehicle="vehicle" :drivers="options.drivers" :types="options.types" :insurers="options.insurers" @close="editOpen = false" />
         <ConfirmDialog :show="confirmDelete" :title="t('common.delete')" :message="t('veh.deleteConfirm', { plate: plateText })" :confirm-label="t('common.delete')" danger
                        @confirm="remove" @cancel="confirmDelete = false" />
     </PortalLayout>

@@ -23,7 +23,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 //  El Tara — Office\ReportController ( /office/reports )   Scope §6.14
 //  Location: app/Http/Controllers/Office/ReportController.php
 //
-//  index   the hub: 12 report cards, as on the demo's Reports screen
+//  index   the hub: 13 report cards, as on the demo's Reports screen
 //  show    one report on screen, with its filters (period, customer,
 //          truck, driver)
 //  export  the same report as an Excel file (every row)

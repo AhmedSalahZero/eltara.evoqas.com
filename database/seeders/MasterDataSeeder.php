@@ -7,7 +7,9 @@ use App\Models\CompanySetting;
 use App\Models\Customer;
 use App\Models\Driver;
 use App\Models\ExpenseCategory;
+use App\Models\InsuranceCompany;
 use App\Models\RateCard;
+use App\Models\RoutePlaceName;
 use App\Models\TripRoute;
 use App\Models\TripRouteBudget;
 use App\Models\Vehicle;
@@ -80,6 +82,12 @@ class MasterDataSeeder extends Seeder
 
         CompanyDefaults::ensure($company->id);
         CompanySetting::for($company->id)->update(['ga_rate_estimate' => 4.50]);
+
+        foreach (self::CITIES as [$ar, $en]) {
+            RoutePlaceName::query()->withoutGlobalScopes()->firstOrCreate(['company_id' => $company->id, 'language' => 'ar', 'name' => $ar]);
+            RoutePlaceName::query()->withoutGlobalScopes()->firstOrCreate(['company_id' => $company->id, 'language' => 'en', 'name' => $en]);
+        }
+        InsuranceCompany::query()->withoutGlobalScopes()->firstOrCreate(['company_id' => $company->id, 'name' => 'مصر للتأمين']);
 
         $categories = ExpenseCategory::query()->withoutGlobalScopes()->where('company_id', $company->id)->pluck('id', 'code');
 

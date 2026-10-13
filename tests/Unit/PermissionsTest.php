@@ -12,9 +12,9 @@ use Tests\TestCase;
 
 class PermissionsTest extends TestCase
 {
-    public function test_there_are_the_16_features_of_the_scope(): void
+    public function test_there_are_the_17_features_of_the_scope(): void
     {
-        $this->assertCount(16, config('permissions.features'));
+        $this->assertCount(17, config('permissions.features'));
     }
 
     public function test_special_actions_exist_only_where_they_apply(): void

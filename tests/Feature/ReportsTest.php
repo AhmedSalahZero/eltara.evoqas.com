@@ -16,7 +16,7 @@ use Tests\TestCase;
 //  El Tara — Test: reports and exports (Step 7, Scope §6.14)
 //  Location: tests/Feature/ReportsTest.php
 //  Feature doc: docs/STEP_07_DASHBOARD_REPORTS_NOTIFICATIONS_AUDIT.md
-//  12 reports; each shows on screen, exports Excel and prints as PDF
+//  13 reports; each shows on screen, exports Excel and prints as PDF
 //  from the same numbers, filtered by period / customer / truck /
 //  driver. Permission: reports.view.
 // ══════════════════════════════════════════════════════════════════
@@ -46,12 +46,12 @@ class ReportsTest extends TestCase
         return $trip->fresh();
     }
 
-    public function test_the_hub_lists_the_twelve_reports_and_needs_the_permission(): void
+    public function test_the_hub_lists_the_thirteen_reports_and_needs_the_permission(): void
     {
         $this->setUpFleet();
 
         $this->actingAs($this->admin, 'web')->get('/office/reports')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->component('Office/Reports/Index')->has('items', 12)->where('items.0.key', 'trips'));
+            ->component('Office/Reports/Index')->has('items', 13)->where('items.0.key', 'trips'));
 
         $user = $this->officeUser($this->co, ['trips.view']);
         $this->actingAs($user, 'web')->get('/office/reports')->assertForbidden();

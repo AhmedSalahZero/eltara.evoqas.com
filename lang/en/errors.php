@@ -39,6 +39,7 @@ return [
     'in_use_cannot_delete'  => 'This record is used elsewhere and cannot be deleted. Suspend or hide it instead.',
     'plate_taken'           => 'A truck with this plate already exists in your company.',
     'list_item_exists'      => 'This name already exists in the list.',
+    'not_in_list'           => 'Choose a name from the list, or add it first.',
     'route_already_priced'  => 'This customer already has a price for this route — edit that line instead.',
     'route_has_prices'      => 'Customers have prices on this route. Remove it from their rate cards first, or hide it.',
 ];

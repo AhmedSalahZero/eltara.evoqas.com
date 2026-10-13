@@ -27,6 +27,7 @@ const props = defineProps({
     show: { type: Boolean, default: false },
     title: { type: String, default: '' },
     wide: { type: Boolean, default: false },
+    wider: { type: Boolean, default: false },
 });
 const emit = defineEmits(['close']);
 const { t } = useI18n();
@@ -105,7 +106,7 @@ onBeforeUnmount(release);
 <template>
     <Teleport to="body">
         <div v-if="show" class="modal-bg" @click.self="emit('close')">
-            <div ref="dialog" class="modal" :class="{ w: wide }" role="dialog" aria-modal="true" :aria-labelledby="titleId" tabindex="-1">
+            <div ref="dialog" class="modal" :class="{ w: wide && !wider, xl: wider }" role="dialog" aria-modal="true" :aria-labelledby="titleId" tabindex="-1">
                 <div class="modal-h">
                     <h3 :id="titleId">{{ title }}</h3>
                     <button type="button" class="ib" :aria-label="t('common.close')" @click="emit('close')"><AppIcon name="x" /></button>

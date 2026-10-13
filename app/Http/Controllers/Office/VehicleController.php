@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Office;
 
 use App\Http\Controllers\Controller;
 use App\Models\Driver;
+use App\Models\InsuranceCompany;
 use App\Models\Trip;
 use App\Models\Vehicle;
 use App\Models\VehicleType;
@@ -142,6 +143,12 @@ class VehicleController extends Controller
 
     public function update(Request $request, Vehicle $vehicle): RedirectResponse
     {
+        // An open maintenance job is what holds the truck. The form cannot
+        // mark it available again until that job is completed or deleted.
+        if ($request->input('status') === 'available' && $vehicle->maintenanceJobs()->where('status', 'open')->exists()) {
+            return back()->with('error', __('maintenance.open_blocks_available'));
+        }
+
         $vehicle->fill($this->validated($request, $vehicle));
         $changes = $vehicle->getDirty();
         $vehicle->save();
@@ -172,8 +179,9 @@ class VehicleController extends Controller
     private function validated(Request $request, ?Vehicle $vehicle = null): array
     {
         $request->merge([
-            'plate_number'  => EgyptPhone::digits((string) $request->input('plate_number')),
-            'plate_letters' => preg_replace('/\s+/u', ' ', trim((string) $request->input('plate_letters'))),
+            'plate_number'      => EgyptPhone::digits((string) $request->input('plate_number')),
+            'plate_letters'     => preg_replace('/\s+/u', ' ', trim((string) $request->input('plate_letters'))),
+            'insurance_company' => trim((string) $request->input('insurance_company')) ?: null,
         ]);
 
         $companyId = $request->user('web')->company_id;
@@ -196,12 +204,15 @@ class VehicleController extends Controller
             'status'        => ['required', Rule::in(Vehicle::STATUSES)],
             'licence_number'          => ['nullable', 'string', 'max:40'],
             'licence_expires_at'      => ['nullable', 'date'],
-            'insurance_company'       => ['nullable', 'string', 'max:80'],
+            'insurance_company'       => ['nullable', 'string', 'max:80', Rule::exists('insurance_companies', 'name')->where('company_id', $companyId)],
             'insurance_policy_number' => ['nullable', 'string', 'max:40'],
             'insurance_expires_at'    => ['nullable', 'date'],
             'inspection_expires_at'   => ['nullable', 'date'],
             'notes'         => ['nullable', 'string', 'max:2000'],
-        ], ['plate_letters.unique' => __('errors.plate_taken')]);
+        ], [
+            'plate_letters.unique'    => __('errors.plate_taken'),
+            'insurance_company.exists' => __('errors.not_in_list'),
+        ]);
 
         if ($data['ownership'] === 'own') {
             $data['owner_name'] = null;
@@ -289,6 +300,7 @@ class VehicleController extends Controller
             'types'   => VehicleType::query()->ordered()
                 ->where(fn ($q) => $q->where('is_active', true)->when($current?->vehicle_type_id, fn ($w) => $w->orWhere('id', $current->vehicle_type_id)))
                 ->get()->map(fn (VehicleType $t) => ['id' => $t->id, 'name' => $t->displayName()])->values(),
+            'insurers' => InsuranceCompany::query()->orderBy('name')->pluck('name')->values(),
             'drivers' => Driver::query()->where('is_active', true)->orderBy('name')
                 ->with('vehicle:id,driver_id,plate_number,plate_letters')
                 ->get(['id', 'name'])

@@ -13,6 +13,7 @@ import { useForm } from '@inertiajs/vue3';
 import Modal from './Modal.vue';
 import Field from './Field.vue';
 import ListSelect from './ListSelect.vue';
+import NameSelect from './NameSelect.vue';
 import AppIcon from './AppIcon.vue';
 import { usePermissions } from '@/composables/usePermissions';
 import { useI18n } from '@/lang/i18n';
@@ -22,6 +23,7 @@ const props = defineProps({
     vehicle: { type: Object, default: null },
     drivers: { type: Array, default: () => [] },
     types: { type: Array, default: () => [] },
+    insurers: { type: Array, default: () => [] },
 });
 const emit = defineEmits(['close']);
 const { t } = useI18n();
@@ -100,7 +102,8 @@ function submit() {
                 <div class="fgrid">
                     <Field :label="t('veh.licenceNo')" :error="form.errors.licence_number"><input v-model="form.licence_number" dir="ltr"></Field>
                     <Field :label="t('doc.licence')" :error="form.errors.licence_expires_at"><input v-model="form.licence_expires_at" type="date"></Field>
-                    <Field :label="t('veh.insuranceCo')" :error="form.errors.insurance_company"><input v-model="form.insurance_company"></Field>
+                    <NameSelect v-model="form.insurance_company" :label="t('veh.insuranceCo')" :options="insurers"
+                                :add-url="route('office.insurance_companies.store')" :can-add="can('vehicles.create')" :error="form.errors.insurance_company" />
                     <Field :label="t('veh.policyNo')" :error="form.errors.insurance_policy_number"><input v-model="form.insurance_policy_number" dir="ltr"></Field>
                     <Field :label="t('doc.insurance')" :error="form.errors.insurance_expires_at"><input v-model="form.insurance_expires_at" type="date"></Field>
                     <Field :label="t('doc.inspection')" :error="form.errors.inspection_expires_at"><input v-model="form.inspection_expires_at" type="date"></Field>

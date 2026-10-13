@@ -78,7 +78,7 @@ class Step6Seeder extends Seeder
     private function permissions(Company $company): void
     {
         $add = [
-            'mona@nile-transport.test'  => ['fuel.view', 'fuel.create', 'fuel.edit', 'driver_advances.view', 'driver_advances.create'],
+            'mona@nile-transport.test'  => ['fuel.view', 'fuel.create', 'fuel.edit', 'maintenance.view', 'maintenance.create', 'maintenance.edit', 'driver_advances.view', 'driver_advances.create'],
             'karim@nile-transport.test' => ['fuel.view', 'driver_advances.view', 'driver_advances.edit', 'driver_advances.approve', 'invoice_links.view', 'invoice_links.create', 'invoice_links.edit', 'month_close.view'],
         ];
 

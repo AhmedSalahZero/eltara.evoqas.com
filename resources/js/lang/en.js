@@ -20,7 +20,7 @@ export default {
         signOut: 'Sign out', profile: 'My profile', never: 'Never', now: 'Just now',
         days: '{n} days', noResults: 'Nothing matches this search.', phase2: 'Phase 2',
         required: 'required', optional: 'optional',
-        total: 'Total', choose: 'Choose…', add: 'Add', addNew: 'Add new', nameArRequired: 'Type the Arabic name.', somethingWrong: 'Something went wrong. Please try again.',
+        total: 'Total', choose: 'Choose…', add: 'Add', addNew: 'Add new', nameArRequired: 'Type the Arabic name.', nameRequired: 'Type the name.', somethingWrong: 'Something went wrong. Please try again.',
     },
 
     status: { active: 'Active', trial: 'Trial', suspended: 'Suspended', readOnly: 'Read-only', notActivated: 'Not activated' },
@@ -174,6 +174,28 @@ export default {
              odometer: 'Odometer (km)', lastOdo: 'Last known: {n}', station: 'Station', paidBy: 'Paid by', cardSub: 'Company fuel card', custodySub: 'Cash from the driver\'s custody (trip only)',
              tripNote: 'A refuel on a trip is recorded as the trip\'s fuel expense — it is counted once.', note: 'Note' },
         deleteConfirm: 'Delete this refuel? The trip expense (if any) stays.',
+    },
+
+    maintenance: {
+        title: 'Maintenance', sub: 'Periodic services and breakdowns. An open job keeps the truck off new trips.', km: 'km',
+        add: 'Add a job', openNow: 'Open now', openFoot: 'The truck cannot be booked', dueNow: 'Due', dueFoot: 'Overdue or coming up', jobsMonth: 'Jobs this month', costMonth: 'Cost this month',
+        tabs: { open: 'Open', due: 'Due', log: 'Log' },
+        cols: { when: 'When', truck: 'Truck', kind: 'Kind', category: 'Item', status: 'Status', cost: 'Cost', odometer: 'Odometer', workshop: 'Workshop', next: 'Next due', state: 'State', note: 'Note' },
+        noneOpen: 'No open jobs.', noneDue: 'Nothing is due. Each finished periodic service sets the next one.', noneLog: 'No jobs opened in this month.',
+        dueHint: 'The next service is worked out from the latest finished periodic job for that truck and item, against the odometer and today.',
+        kinds: { periodic: 'Periodic', emergency: 'Breakdown' },
+        categories: { oil: 'Oil', tyres: 'Tyres', filters: 'Filters', other: 'Other' },
+        statuses: { open: 'Open', done: 'Done' },
+        states: { overdue: 'Overdue', soon: 'Due soon', ok: 'OK' },
+        recordDue: 'Record the service',
+        addTitle: 'Add a job', editTitle: 'Change the job',
+        noteRequired: 'Required for a breakdown, and for Other.',
+        intervalHint: 'A finished periodic service needs kilometres, days, or both.',
+        holdsTruck: 'While this job is open the truck stays in maintenance and cannot be booked on a new trip.',
+        costOutside: 'This cost stays in the maintenance log. It is not a trip expense and it is not added to the month\'s G&A.',
+        f: { truck: 'Truck', kind: 'Kind', category: 'Item', status: 'Status', opened: 'Opened', completed: 'Finished', odometer: 'Odometer (km)', lastOdo: 'Last known: {n}',
+             cost: 'Cost (EGP)', workshop: 'Workshop', note: 'Note', intervalKm: 'Every (km)', intervalDays: 'Every (days)' },
+        deleteConfirm: 'Delete this job? If it was the last open job, the truck becomes available again.',
     },
 
     adv: {

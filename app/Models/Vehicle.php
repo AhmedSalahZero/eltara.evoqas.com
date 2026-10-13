@@ -86,4 +86,9 @@ class Vehicle extends Model
     {
         return $this->hasMany(Trip::class);
     }
+
+    public function maintenanceJobs(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(MaintenanceJob::class);
+    }
 }

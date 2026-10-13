@@ -138,7 +138,7 @@ function save() {
 </script>
 
 <template>
-    <Modal :show="show" wide :title="editing ? t('trip.edit') : t('trip.add')" @close="emit('close')">
+    <Modal :show="show" wider :title="editing ? t('trip.edit') : t('trip.add')" @close="emit('close')">
         <form v-if="options" id="trip-form" @submit.prevent="save">
             <div class="fgrid">
                 <Field :label="t('trip.customer')" :error="form.errors.customer_id">
