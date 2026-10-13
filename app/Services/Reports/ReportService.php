@@ -464,6 +464,8 @@ final class ReportService
                 'category' => $this->word('maintenance_category', $x['category']),
                 'status'   => $this->word('maintenance_status', $x['status']),
                 'amount'   => $x['cost'],
+                'allocated'=> $x['allocated'] ?? null,
+                'remaining'=> $x['remaining'] ?? null,
                 'odometer' => $x['odometer_km'],
                 'next_due' => implode(' · ', $due),
                 'state'    => $x['active'] && $x['state'] ? $this->word('maintenance_state', $x['state']) : '',
@@ -473,10 +475,14 @@ final class ReportService
         $t = $a['totals'];
 
         return [
-            'columns'   => [['date', 'date'], ['vehicle', 'text'], ['kind', 'text'], ['category', 'text'], ['status', 'text'], ['amount', 'money'], ['odometer', 'num'], ['next_due', 'text'], ['state', 'text']],
+            'columns'   => [['date', 'date'], ['vehicle', 'text'], ['kind', 'text'], ['category', 'text'], ['status', 'text'], ['amount', 'money'], ['allocated', 'money'], ['remaining', 'money'], ['odometer', 'num'], ['next_due', 'text'], ['state', 'text']],
             'rows'      => $rows,
             'truncated' => $a['truncated'],
-            'totals'    => ['amount' => $t['amount'], 'jobs' => $t['jobs'], 'open' => $t['open']],
+            'totals'    => [
+                'amount' => $t['amount'], 'jobs' => $t['jobs'], 'open' => $t['open'],
+                'allocated' => round(array_sum(array_map(fn ($r) => (float) ($r['allocated'] ?? 0), $rows)), 2),
+                'remaining' => round(array_sum(array_map(fn ($r) => (float) ($r['remaining'] ?? 0), $rows)), 2),
+            ],
             'note'      => __('reports.maintenance_note', ['jobs' => $t['jobs'], 'open' => $t['open']]),
         ];
     }

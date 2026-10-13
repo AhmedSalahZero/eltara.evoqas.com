@@ -95,6 +95,10 @@ function saveList() {
                         <Field :label="t('set.fuelFlag')" :hint="t('set.fuelFlagHint')" :error="form.errors.fuel_flag_percent"><input v-model="form.fuel_flag_percent" type="number" min="0" max="100" step="0.5" dir="ltr"></Field>
                     </div>
                     <div class="doc-row" style="grid-template-columns:minmax(0,1fr) auto;margin-top:8px">
+                        <div><b>{{ t('set.hasWorkshop') }}</b><span>{{ t('set.hasWorkshopSub') }}</span></div>
+                        <label class="sw"><input v-model="form.has_workshop" type="checkbox"><i /></label>
+                    </div>
+                    <div class="doc-row" style="grid-template-columns:minmax(0,1fr) auto;margin-top:8px">
                         <div><b>{{ t('set.personalAdvance') }}</b><span>{{ t('set.personalAdvanceSub') }}</span></div>
                         <label class="sw"><input v-model="form.personal_spend_to_advance" type="checkbox"><i /></label>
                     </div>

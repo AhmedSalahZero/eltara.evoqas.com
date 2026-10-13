@@ -49,4 +49,44 @@ describe('MaintenanceForm', () => {
 
         expect(wrapper.get('[data-testid="note"]').element.required).toBe(true);
     });
+
+    it('uses stock lines for the company workshop and a typed bill for an outside workshop', async () => {
+        const plain = mountForm();
+        expect(plain.wrapper.find('option[value="own"]').exists()).toBe(false);
+
+        const form = reactive({
+            vehicle_id: 1, kind: 'periodic', category: 'oil', status: 'done', source: 'external',
+            opened_at: '2026-10-01T10:00', completed_at: '2026-10-01T12:00',
+            odometer_km: '10000', cost: '500', workshop: 'Outside', note: '', interval_km: '5000', interval_days: '90',
+            store_id: 1, lines: [], errors: {},
+        });
+        const wrapper = mount(MaintenanceForm, {
+            props: {
+                form,
+                workshop: true,
+                vehicles: [{ id: 1, number: '2140', letters: 'ن ق ل', odometer: 9000 }],
+                stores: [{ id: 1, name: 'ورشة الشركة' }],
+                stock: [{ id: 7, name: 'Oil', unit: 'litre', places: [{ store_id: 1, qty: 20 }] }],
+            },
+        });
+
+        expect(wrapper.text()).toContain('Outside workshop');
+        expect(wrapper.text()).toContain('Cost (EGP)');
+
+        form.source = 'own';
+        await nextTick();
+
+        expect(form.cost).toBe('');
+        expect(form.workshop).toBe('');
+        expect(form.lines).toHaveLength(1);
+        expect(wrapper.text()).toContain('The cost is the value issued from the store.');
+        expect(wrapper.text()).toContain('ورشة الشركة');
+        expect(wrapper.text()).toContain('Oil (20 Litre)');
+        expect(wrapper.text()).not.toContain('Cost (EGP)');
+
+        form.source = 'external';
+        await nextTick();
+        expect(form.lines).toEqual([]);
+        expect(wrapper.text()).toContain('Cost (EGP)');
+    });
 });

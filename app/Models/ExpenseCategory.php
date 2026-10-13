@@ -30,6 +30,7 @@ class ExpenseCategory extends Model
         'night'  => ['مبيت وانتظار', 'Overnight & waiting', 'bed', 100],
         'fine'   => ['مخالفات', 'Fines', 'ticket', 100],
         'repair' => ['إصلاح على الطريق', 'Road repair', 'wrench', 100],
+        'maint'  => ['صيانة', 'Maintenance', 'wrench', 0],
         'hire'   => ['أجرة سيارة مؤجرة', 'Hired truck fee', 'truck', 0],
         'other'  => ['أخرى', 'Other', 'receipt', 100],
     ];

@@ -29,6 +29,7 @@ export const officeMenu = [
     { label: 'nav.routes', icon: 'pin', permission: 'customers.view', route: 'office.routes.index' },
     { label: 'nav.fuel', icon: 'fuel', permission: 'fuel.view', route: 'office.fuel.index' },
     { label: 'nav.maintenance', icon: 'wrench', permission: 'maintenance.view', route: 'office.maintenance.index' },
+    { label: 'nav.stock', icon: 'box', permission: 'maintenance.view', route: 'office.stock.index' },
     'nav.finance',
     { label: 'nav.advances', icon: 'hand', permission: 'driver_advances.view', route: 'office.advances.index' },
     { label: 'nav.invoices', icon: 'link', permission: 'invoice_links.view', route: 'office.invoices.index' },

@@ -46,6 +46,9 @@ class NameListsTest extends TestCase
         $this->post('/office/vehicles', $this->vehicle($admin->company_id, ['plate_number' => '3001', 'insurance_company' => 'شركة مجهولة']))
             ->assertSessionHasErrors('insurance_company');
         $this->assertSame(1, Vehicle::query()->count());
+
+        $this->actingAs($this->companyAdmin(), 'web')->get('/office/vehicles')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('options.insurers', []));
     }
 
     public function test_the_same_insurance_company_cannot_be_added_twice_and_needs_permission(): void
@@ -99,6 +102,43 @@ class NameListsTest extends TestCase
         $this->assertSame(2, RoutePlaceName::query()->withoutGlobalScopes()->where('language', 'ar')->count());
 
         $this->actingAs($this->companyAdmin(), 'web')->get('/office/routes')->assertInertia(fn (Assert $page) => $page->where('places.ar', []));
+    }
+
+    public function test_an_english_place_is_kept_apart_from_the_arabic_list(): void
+    {
+        $admin = $this->companyAdmin();
+        $this->actingAs($admin, 'web');
+
+        $this->postJson('/office/route-places', ['language' => 'en', 'name' => 'Cairo'])->assertCreated();
+        $this->postJson('/office/route-places', ['language' => 'en', 'name' => 'Alexandria'])->assertCreated();
+        $this->postJson('/office/route-places', ['language' => 'ar', 'name' => 'القاهرة'])->assertCreated();
+        $this->postJson('/office/route-places', ['language' => 'ar', 'name' => 'الإسكندرية'])->assertCreated();
+
+        $this->get('/office/routes')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('places.en', fn ($names) => collect($names)->contains('Cairo') && collect($names)->contains('Alexandria') && ! collect($names)->contains('القاهرة'))
+            ->where('places.ar', fn ($names) => collect($names)->contains('القاهرة') && ! collect($names)->contains('Cairo')));
+
+        CompanyDefaults::ensure($admin->company_id);
+        $fuel = ExpenseCategory::query()->withoutGlobalScopes()->where('company_id', $admin->company_id)->where('code', 'fuel')->value('id');
+
+        $this->post('/office/routes', [
+            'origin_ar' => 'القاهرة', 'destination_ar' => 'الإسكندرية', 'origin_en' => 'Cairo', 'destination_en' => 'Alexandria',
+            'weight_tons' => 5, 'km_round_trip' => 220, 'is_active' => true, 'budgets' => [$fuel => 80],
+        ])->assertSessionHasNoErrors();
+        $route = TripRoute::query()->firstOrFail();
+        $this->assertSame('القاهرة', $route->origin_ar);
+        $this->assertSame('الإسكندرية', $route->destination_ar);
+        $this->assertSame('Cairo', $route->origin_en);
+        $this->assertSame('Alexandria', $route->destination_en);
+
+        $this->post('/office/routes', [
+            'origin_ar' => 'Cairo', 'destination_ar' => 'الإسكندرية',
+            'weight_tons' => 5, 'km_round_trip' => 100, 'is_active' => true, 'budgets' => [],
+        ])->assertSessionHasErrors('origin_ar');
+        $this->post('/office/routes', [
+            'origin_ar' => 'القاهرة', 'destination_ar' => 'الإسكندرية', 'origin_en' => 'القاهرة', 'destination_en' => 'Alexandria',
+            'weight_tons' => 5, 'km_round_trip' => 100, 'is_active' => true, 'budgets' => [],
+        ])->assertSessionHasErrors('origin_en');
     }
 
     /** @param array<string,mixed> $overrides */

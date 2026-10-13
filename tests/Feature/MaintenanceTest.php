@@ -76,8 +76,11 @@ class MaintenanceTest extends TestCase
         ]))->assertSessionHas('success');
 
         $this->assertSame('available', $this->truck->fresh()->status);
-        $this->post('/office/trips', $this->tripData())->assertSessionHasNoErrors();
-        $this->assertSame(0, TripExpense::query()->withoutGlobalScopes()->count());
+        $this->post('/office/trips', $this->tripData(['loading_at' => now()->addHours(5)->format('Y-m-d H:i')]))->assertSessionHasNoErrors();
+        $share = TripExpense::query()->withoutGlobalScopes()->where('maintenance_job_id', $job->id)->get();
+        $this->assertCount(1, $share);
+        $this->assertSame('company', $share[0]->paid_from);
+        $this->assertEquals(450.0, (float) $share[0]->amount);
         $this->assertSame(0, GaEntry::query()->withoutGlobalScopes()->count());
     }
 
@@ -211,11 +214,15 @@ class MaintenanceTest extends TestCase
                     && $rows[0]['odometer'] === 10000
                     && $rows[1]['state'] === __('reports.maintenance_state.overdue')
                     && $rows[1]['kind'] === __('reports.maintenance_kind.periodic')
-                    && abs((float) $rows[0]['amount'] + (float) $rows[1]['amount'] - 1500) < 0.01;
+                    && abs((float) $rows[0]['amount'] + (float) $rows[1]['amount'] - 1500) < 0.01
+                    && (float) $rows[0]['allocated'] === 0.0 && (float) $rows[0]['remaining'] === 700.0
+                    && (float) $rows[1]['allocated'] === 0.0 && (float) $rows[1]['remaining'] === 800.0;
             })
             ->where('report.totals.jobs', 2)
             ->where('report.totals.open', 0)
             ->where('report.totals.amount', fn ($v) => abs((float) $v - 1500) < 0.01)
+            ->where('report.totals.allocated', fn ($v) => abs((float) $v) < 0.01)
+            ->where('report.totals.remaining', fn ($v) => abs((float) $v - 1500) < 0.01)
             ->where('report.note', __('reports.maintenance_note', ['jobs' => 2, 'open' => 0])));
 
         $this->assertSame(0, TripExpense::query()->withoutGlobalScopes()->count());

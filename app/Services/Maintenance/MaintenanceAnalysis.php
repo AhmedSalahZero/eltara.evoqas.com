@@ -124,7 +124,8 @@ final class MaintenanceAnalysis
         return MaintenanceJob::query()
             ->where('company_id', $companyId)
             ->when($vehicleId, fn ($q) => $q->where('vehicle_id', $vehicleId))
-            ->with(['vehicle:id,plate_number,plate_letters,odometer_km']);
+            ->with(['vehicle:id,plate_number,plate_letters,odometer_km', 'lines:id,maintenance_job_id,stock_item_id,qty,amount'])
+            ->withSum('expenses', 'amount');
     }
 
     /** @return array<string,mixed> */
@@ -161,6 +162,11 @@ final class MaintenanceAnalysis
             'next_due_on' => $schedule['next_on'] ?? null,
             'state' => $state,
             'active' => $active && $state !== null,
+            'source' => $job->source,
+            'store_id' => $job->store_id,
+            'lines' => $job->lines->map(fn ($l) => ['item_id' => $l->stock_item_id, 'qty' => $l->qty, 'amount' => $l->amount])->values(),
+            'allocated' => round((float) $job->expenses_sum_amount, 2),
+            'remaining' => $job->shares_trips && $job->cost !== null ? round((float) $job->cost - (float) $job->expenses_sum_amount, 2) : null,
         ];
     }
 

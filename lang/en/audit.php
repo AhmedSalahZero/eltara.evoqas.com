@@ -8,7 +8,7 @@ return [
         'advance' => 'Advance', 'client_request' => 'Client request', 'client_user' => 'Client user', 'collection' => 'Collection', 'company' => 'Company',
         'complaint' => 'Complaint', 'custody' => 'Custody', 'customer' => 'Customer', 'driver' => 'Driver', 'expense' => 'Expense', 'expense_category' => 'Expense category',
         'fuel' => 'Fuel refuel', 'ga' => 'G&A line', 'insurance_company' => 'Insurance company', 'invoice' => 'Invoice link', 'maintenance' => 'Maintenance', 'month' => 'Month', 'permissions' => 'Permissions', 'rate_card' => 'Rate card', 'route_place' => 'Route place',
-        'report' => 'Report', 'route' => 'Route', 'settings' => 'Company settings', 'transfer' => 'Wallet transfer', 'trip' => 'Trip', 'user' => 'User', 'vehicle' => 'Truck',
+        'report' => 'Report', 'route' => 'Route', 'settings' => 'Company settings', 'stock' => 'Workshop store', 'transfer' => 'Wallet transfer', 'trip' => 'Trip', 'user' => 'User', 'vehicle' => 'Truck',
         'vehicle_type' => 'Truck type', 'cargo_type' => 'Cargo type',
     ],
     'verbs' => [

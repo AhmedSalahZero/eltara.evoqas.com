@@ -1,0 +1,1 @@
+import{u as o}from"./app-BSN2frwv.js";function a(s){const e=JSON.parse(JSON.stringify(s)),r=o(s);return r.startFresh=(t={})=>(r.defaults({...JSON.parse(JSON.stringify(e)),...t}),r.reset(),r.clearErrors(),r),r}export{a as u};

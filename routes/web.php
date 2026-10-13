@@ -28,6 +28,7 @@ use App\Http\Controllers\Office\CustomerController as OfficeCustomerController;
 use App\Http\Controllers\Office\DriverController as OfficeDriverController;
 use App\Http\Controllers\Office\RouteController as OfficeRouteController;
 use App\Http\Controllers\Office\SettingsController as OfficeSettingsController;
+use App\Http\Controllers\Office\StockController as OfficeStockController;
 use App\Http\Controllers\Office\TripActionController as OfficeTripActionController;
 use App\Http\Controllers\Office\TripController as OfficeTripController;
 use App\Http\Controllers\Office\TripMoneyController as OfficeTripMoneyController;
@@ -217,6 +218,11 @@ Route::prefix('office')->name('office.')->middleware(['auth:web', 'office', 'rea
     Route::post('maintenance', [OfficeMaintenanceController::class, 'store'])->middleware('can:maintenance.create')->name('maintenance.store');
     Route::patch('maintenance/{job}', [OfficeMaintenanceController::class, 'update'])->middleware('can:maintenance.edit')->name('maintenance.update');
     Route::delete('maintenance/{job}', [OfficeMaintenanceController::class, 'destroy'])->middleware('can:maintenance.delete')->name('maintenance.destroy');
+
+    Route::get('stock', [OfficeStockController::class, 'index'])->middleware('can:maintenance.view')->name('stock.index');
+    Route::post('stock/stores', [OfficeStockController::class, 'storeStore'])->middleware('can:maintenance.create')->name('stock.stores.store');
+    Route::post('stock/items', [OfficeStockController::class, 'storeItem'])->middleware('can:maintenance.create')->name('stock.items.store');
+    Route::post('stock/receipts', [OfficeStockController::class, 'receive'])->middleware('can:maintenance.create')->name('stock.receipts.store');
 
     Route::get('advances', [OfficeAdvanceController::class, 'index'])->middleware('can:driver_advances.view')->name('advances.index');
     Route::get('advances/export', [OfficeAdvanceController::class, 'export'])->middleware('can:driver_advances.view')->name('advances.export');

@@ -2,9 +2,12 @@
 
 namespace App\Services\Maintenance;
 
+use App\Models\CompanySetting;
 use App\Models\MaintenanceJob;
+use App\Models\MaintenanceJobLine;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Services\Stock\StockService;
 use App\Services\Trips\TripRuleException;
 use App\Support\Audit;
 use Illuminate\Support\Carbon;
@@ -21,12 +24,18 @@ use Illuminate\Support\Facades\DB;
 //  available. A running trip is left as it is.
 //
 //  The odometer only ever goes up, as it does for fuel.
-//  The cost is workshop data only: no trip expense, no G&A line.
+//  A finished job's cost is shared onto the truck's later trips
+//  (MaintenanceShare). An own workshop draws that cost from stock.
 //  Every change is audited.
 // ══════════════════════════════════════════════════════════════════
 
 final class MaintenanceService
 {
+    public function __construct(
+        private readonly StockService $stock,
+        private readonly MaintenanceShare $shares,
+    ) {}
+
     /**
      * @param  array{vehicle_id?:int, kind?:string, category?:string, status?:string, opened_at?:mixed, completed_at?:mixed,
      *               odometer_km?:mixed, cost?:mixed, workshop?:?string, note?:?string, interval_km?:mixed, interval_days?:mixed}  $data
@@ -44,7 +53,9 @@ final class MaintenanceService
                 ...$fields,
             ]);
 
+            $this->syncLines($job, $data);
             $this->afterWrite($job, null, false);
+            $this->pool($job, false, $user);
             Audit::record('maintenance.created', $job, ['after' => $this->view($job, $vehicle)]);
 
             return $job;
@@ -54,15 +65,24 @@ final class MaintenanceService
     /** @param array<string,mixed> $data */
     public function update(MaintenanceJob $job, array $data, User $user): MaintenanceJob
     {
-        return DB::transaction(function () use ($job, $data) {
+        return DB::transaction(function () use ($job, $data, $user) {
             $previousVehicleId = (int) $job->vehicle_id;
             $wasOpen = $job->status === 'open';
+            $wasDone = $job->status === 'done';
             $before = $this->view($job, $job->vehicle()->first());
 
             $vehicle = $this->vehicle((int) ($data['vehicle_id'] ?? $job->vehicle_id));
-            $job->fill(['vehicle_id' => $vehicle->id, ...$this->fields($data)])->save();
+            $job->fill(['vehicle_id' => $vehicle->id, ...$this->fields($data, $job)])->save();
+            $this->syncLines($job, $data);
 
             $this->afterWrite($job, $previousVehicleId, $wasOpen);
+            $this->pool($job, $wasDone, $user);
+            if ($previousVehicleId !== (int) $job->vehicle_id) {
+                $previous = Vehicle::query()->find($previousVehicleId);
+                if ($previous) {
+                    $this->shares->apply($previous, $user);
+                }
+            }
             Audit::record('maintenance.updated', $job, ['before' => $before, 'after' => $this->view($job, $vehicle)]);
 
             return $job;
@@ -71,12 +91,18 @@ final class MaintenanceService
 
     public function delete(MaintenanceJob $job, User $user): void
     {
-        DB::transaction(function () use ($job) {
+        DB::transaction(function () use ($job, $user) {
             $wasOpen = $job->status === 'open';
             $vehicleId = (int) $job->vehicle_id;
+            $vehicle = Vehicle::query()->find($vehicleId);
 
             Audit::record('maintenance.deleted', $job, ['before' => $this->view($job, $job->vehicle()->first())]);
+            $this->stock->reverseJob($job);
+            $this->shares->release($job, $user);
             $job->delete();
+            if ($vehicle) {
+                $this->shares->apply($vehicle, $user);
+            }
 
             if ($wasOpen) {
                 $vehicle = Vehicle::query()->find($vehicleId);
@@ -88,6 +114,83 @@ final class MaintenanceService
     }
 
     // ── Helpers ────────────────────────────────────────────────────
+
+    private function source(array $data, ?MaintenanceJob $existing): string
+    {
+        $companyId = $existing?->company_id;
+        if (! $companyId && ! empty($data['vehicle_id'])) {
+            $companyId = Vehicle::query()->whereKey($data['vehicle_id'])->value('company_id');
+        }
+        $hasWorkshop = $companyId && CompanySetting::for((int) $companyId)->has_workshop;
+        $source = (string) ($data['source'] ?? 'external');
+
+        if ($source === 'own' && ! $hasWorkshop) {
+            throw TripRuleException::because('maintenance.own_needs_workshop');
+        }
+        if (! $hasWorkshop || ! in_array($source, MaintenanceJob::SOURCES, true)) {
+            return 'external';
+        }
+
+        return $source;
+    }
+
+    /** @return list<array{item_id:int, qty:float}> */
+    private function lines(array $data): array
+    {
+        $out = [];
+        foreach ($data['lines'] ?? [] as $line) {
+            if (! is_array($line)) {
+                continue;
+            }
+            $qty = is_numeric($line['qty'] ?? null) ? round((float) $line['qty'], 3) : 0.0;
+            $id = (int) ($line['item_id'] ?? 0);
+            if ($id > 0 && $qty > 0) {
+                $out[] = ['item_id' => $id, 'qty' => $qty];
+            }
+        }
+
+        return $out;
+    }
+
+    private function syncLines(MaintenanceJob $job, array $data): void
+    {
+        if ($job->lines()->whereNotNull('stock_move_id')->exists()) {
+            return;
+        }
+        $job->lines()->delete();
+        if ($job->source !== 'own') {
+            return;
+        }
+        foreach ($this->lines($data) as $line) {
+            MaintenanceJobLine::query()->create([
+                'company_id' => $job->company_id,
+                'maintenance_job_id' => $job->id,
+                'stock_item_id' => $line['item_id'],
+                'qty' => $line['qty'],
+            ]);
+        }
+    }
+
+    /** Issue stock when an own job is finished, then share the cost onto trips. */
+    private function pool(MaintenanceJob $job, bool $wasDone, User $user): void
+    {
+        if ($wasDone && $job->status !== 'done') {
+            $this->stock->reverseJob($job);
+            $this->shares->release($job, $user);
+            $job->forceFill(['shares_trips' => false, 'cost' => $job->source === 'own' ? null : $job->cost])->save();
+        } elseif ($job->status === 'done') {
+            if ($job->source === 'own' && $job->lines()->whereNull('stock_move_id')->exists()) {
+                $job->forceFill(['cost' => $this->stock->issueJob($job, $user), 'shares_trips' => true])->save();
+            } else {
+                $job->forceFill(['shares_trips' => true])->save();
+            }
+        }
+
+        $vehicle = $job->vehicle()->first();
+        if ($vehicle && $job->shares_trips) {
+            $this->shares->apply($vehicle, $user);
+        }
+    }
 
     private function vehicle(int $id): Vehicle
     {
@@ -103,7 +206,7 @@ final class MaintenanceService
      * @param  array<string,mixed>  $data
      * @return array<string,mixed>
      */
-    private function fields(array $data): array
+    private function fields(array $data, ?MaintenanceJob $existing = null): array
     {
         $kind = (string) ($data['kind'] ?? '');
         $category = (string) ($data['category'] ?? '');
@@ -122,7 +225,9 @@ final class MaintenanceService
         $odometer = $this->whole($data['odometer_km'] ?? null, 0);
         $intervalKm = $kind === 'periodic' ? $this->whole($data['interval_km'] ?? null, 1) : null;
         $intervalDays = $kind === 'periodic' ? $this->whole($data['interval_days'] ?? null, 1) : null;
-        $cost = $this->number($data['cost'] ?? null);
+        $source = $this->source($data, $existing);
+        $issued = $existing && $existing->lines()->whereNotNull('stock_move_id')->exists();
+        $cost = $source === 'own' ? ($issued ? $existing->cost : null) : $this->number($data['cost'] ?? null);
         $completedAt = null;
 
         if ($intervalKm !== null && $odometer === null) {
@@ -137,8 +242,14 @@ final class MaintenanceService
             if ($completedAt->lt($openedAt)) {
                 throw TripRuleException::because('maintenance.completed_before_open');
             }
-            if ($cost === null) {
+            if ($source === 'external' && $cost === null) {
                 throw TripRuleException::because('maintenance.cost_required');
+            }
+            if ($source === 'own' && ! $issued && $this->lines($data) === []) {
+                throw TripRuleException::because('maintenance.lines_required');
+            }
+            if ($source === 'own' && ! $issued && empty($data['store_id'])) {
+                throw TripRuleException::because('stock.store_required');
             }
             if ($kind === 'periodic' && $intervalKm === null && $intervalDays === null) {
                 throw TripRuleException::because('maintenance.interval_required');
@@ -150,6 +261,8 @@ final class MaintenanceService
         }
 
         return [
+            'source' => $source,
+            'store_id' => $source === 'own' ? ($issued ? $existing->store_id : ((int) ($data['store_id'] ?? 0) ?: null)) : null,
             'kind' => $kind,
             'category' => $category,
             'status' => $status,

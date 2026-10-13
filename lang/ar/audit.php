@@ -8,7 +8,7 @@ return [
         'advance' => 'سلفة', 'client_request' => 'طلب عميل', 'client_user' => 'مستخدم عميل', 'collection' => 'تحصيل', 'company' => 'شركة',
         'complaint' => 'شكوى', 'custody' => 'عهدة', 'customer' => 'عميل', 'driver' => 'سائق', 'expense' => 'مصروف', 'expense_category' => 'بند مصروف',
         'fuel' => 'تموين وقود', 'ga' => 'بند مصروفات عامة', 'insurance_company' => 'شركة تأمين', 'invoice' => 'ربط فاتورة', 'maintenance' => 'صيانة', 'month' => 'شهر', 'permissions' => 'صلاحيات', 'rate_card' => 'قائمة أسعار', 'route_place' => 'مكان على مسار',
-        'report' => 'تقرير', 'route' => 'مسار', 'settings' => 'إعدادات الشركة', 'transfer' => 'تحويل محافظ', 'trip' => 'رحلة', 'user' => 'مستخدم', 'vehicle' => 'شاحنة',
+        'report' => 'تقرير', 'route' => 'مسار', 'settings' => 'إعدادات الشركة', 'stock' => 'مخزن الورشة', 'transfer' => 'تحويل محافظ', 'trip' => 'رحلة', 'user' => 'مستخدم', 'vehicle' => 'شاحنة',
         'vehicle_type' => 'نوع شاحنة', 'cargo_type' => 'نوع حمولة',
     ],
     'verbs' => [

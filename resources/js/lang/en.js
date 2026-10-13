@@ -42,7 +42,7 @@ export default {
     nav: {
         platform: 'Platform', overview: 'Platform overview', companies: 'Companies',
         main: 'Main', dashboard: 'Dashboard', requests: 'Client requests', trips: 'Trips', wallets: 'Wallets & settlement',
-        operations: 'Operations', vehicles: 'Trucks', drivers: 'Drivers', customers: 'Customers & rate cards', routes: 'Routes & budgets', fuel: 'Fuel log', maintenance: 'Maintenance',
+        operations: 'Operations', vehicles: 'Trucks', drivers: 'Drivers', customers: 'Customers & rate cards', routes: 'Routes & budgets', fuel: 'Fuel log', maintenance: 'Maintenance', stock: 'Workshop store',
         finance: 'Finance', advances: 'Driver advances', invoices: 'Invoice numbers', close: 'Month close & true profit', reports: 'Reports',
         admin: 'Admin', users: 'Users & permissions', settings: 'Company settings',         audit: 'Audit log',
         clientPortal: 'Client portal', clientHome: 'Home', clientNew: 'Request a trip', clientRequests: 'My requests', clientShipments: 'My shipments',
@@ -192,10 +192,22 @@ export default {
         noteRequired: 'Required for a breakdown, and for Other.',
         intervalHint: 'A finished periodic service needs kilometres, days, or both.',
         holdsTruck: 'While this job is open the truck stays in maintenance and cannot be booked on a new trip.',
-        costOutside: 'This cost stays in the maintenance log. It is not a trip expense and it is not added to the month\'s G&A.',
+        costOutside: 'This cost is added to the truck\'s later trips as a company-paid maintenance expense. Do not enter it again in the month\'s G&A.',
+        sources: { own: 'Company workshop', external: 'Outside workshop' },
         f: { truck: 'Truck', kind: 'Kind', category: 'Item', status: 'Status', opened: 'Opened', completed: 'Finished', odometer: 'Odometer (km)', lastOdo: 'Last known: {n}',
-             cost: 'Cost (EGP)', workshop: 'Workshop', note: 'Note', intervalKm: 'Every (km)', intervalDays: 'Every (days)' },
+             cost: 'Cost (EGP)', workshop: 'Workshop', note: 'Note', intervalKm: 'Every (km)', intervalDays: 'Every (days)', source: 'Where', store: 'Store', item: 'Item', qty: 'Quantity' },
+        addLine: 'Add an item', fromStock: 'The cost is the value issued from the store.',
         deleteConfirm: 'Delete this job? If it was the last open job, the truck becomes available again.',
+    },
+
+    stock: {
+        title: 'Workshop store', sub: 'What the company workshop has on hand, what came in, and what was issued to a truck',
+        addStore: 'Add a store', addItem: 'Add an item', receipt: 'Receive goods', onHand: 'On hand', value: 'Value', avg: 'Average', movements: 'Movements',
+        cols: { item: 'Item', unit: 'Unit', qty: 'Quantity', value: 'Value', avg: 'Average cost', when: 'When', direction: 'Movement', supplier: 'Supplier', truck: 'Truck', amount: 'Amount' },
+        units: { litre: 'Litre', piece: 'Piece', kg: 'kg' },
+        dir: { in: 'Received', out: 'Issued' },
+        none: 'Nothing is on hand in this store.', noneMoves: 'No movements yet.',
+        f: { name: 'Name', unit: 'Unit', store: 'Store', item: 'Item', qty: 'Quantity', price: 'Price per unit', supplier: 'Supplier', when: 'Date' },
     },
 
     adv: {
@@ -412,6 +424,7 @@ export default {
         },
         autoLimit: 'Automatic-transfer limit (EGP)', buffer: 'Custody buffer above budget (%)', overBudget: 'Flag an expense when it is more than … % above its usual amount',
         fuelFlag: 'Flag a truck when its km/L is more than … % below its standard', fuelFlagHint: '7% by default. Shown in the Fuel log.',
+        hasWorkshop: 'The company has its own workshop', hasWorkshopSub: 'Maintenance can then be issued from the workshop store. The cost still lands on the truck\'s trips.',
         overBudgetHint: 'Shown as "Over budget" on the trip. 15% by default.',
         personalAdvance: 'Personal spend from custody becomes an advance automatically', personalAdvanceSub: 'And is listed for review',
         closeRule: 'A trip cannot close before both wallets are settled and delivery is proven', mandatory: 'Mandatory rule',

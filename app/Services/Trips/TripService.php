@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\WalletEntry;
 use App\Services\CompanyDefaults;
+use App\Services\Maintenance\MaintenanceShare;
 use App\Services\Notifier;
 use App\Support\Audit;
 use Illuminate\Http\UploadedFile;
@@ -52,6 +53,7 @@ final class TripService
     public function __construct(
         private readonly WalletLedger $ledger,
         private readonly ExpenseService $expenses,
+        private readonly MaintenanceShare $maintenanceShare,
     ) {}
 
     // ── Create & edit ──────────────────────────────────────────────
@@ -125,6 +127,8 @@ final class TripService
                 ], Actor::user($user));
             }
 
+            $this->maintenanceShare->apply($vehicle, $user);
+
             return $trip;
         });
 
@@ -189,6 +193,15 @@ final class TripService
             if ($changes) {
                 Audit::record('trip.updated', $trip, ['before' => array_intersect_key($before, $changes), 'after' => array_map(
                     fn ($v) => $v instanceof \DateTimeInterface ? $v->format('Y-m-d H:i') : $v, $changes)]);
+            }
+
+            if (isset($changes['vehicle_id']) || isset($changes['loading_at'])) {
+                if (isset($changes['vehicle_id']) && ($old = Vehicle::query()->find($before['vehicle_id']))) {
+                    $this->maintenanceShare->apply($old, $user);
+                }
+                if ($current = $trip->vehicle()->first()) {
+                    $this->maintenanceShare->apply($current, $user);
+                }
             }
 
             return $trip;

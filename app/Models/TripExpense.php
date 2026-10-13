@@ -34,7 +34,7 @@ class TripExpense extends Model
 
     protected $fillable = [
         'company_id', 'trip_id', 'driver_id', 'expense_category_id', 'is_personal', 'paid_from', 'amount', 'note',
-        'receipt_path', 'spent_at', 'lat', 'lng', 'source', 'wallet_transfer_id', 'created_by',
+        'receipt_path', 'spent_at', 'lat', 'lng', 'source', 'wallet_transfer_id', 'maintenance_job_id', 'created_by',
     ];
 
     protected function casts(): array

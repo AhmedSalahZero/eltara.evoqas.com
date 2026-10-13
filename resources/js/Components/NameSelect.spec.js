@@ -26,10 +26,15 @@ describe('NameSelect', () => {
         });
 
         const html = wrapper.html();
+        const plus = wrapper.get('[data-testid="add-name"]');
         expect(html.indexOf('data-testid="add-name"')).toBeLessThan(html.indexOf('data-testid="name-select"'));
+        expect(plus.classes()).toContain('name-plus');
+        expect(plus.classes().includes('btn')).toBe(false);
         expect(wrapper.get('[data-testid="name-select"]').text()).toContain('الإسكندرية');
 
-        await wrapper.get('[data-testid="add-name"]').trigger('click');
+        await plus.trigger('click');
+        const pop = wrapper.get('.name-pop');
+        expect(pop.element.parentElement).toBe(wrapper.get('[data-testid="name-select"]').element.parentElement);
         await wrapper.get('[data-testid="new-name"]').setValue('  القاهرة  ');
         await wrapper.get('[data-testid="confirm-name"]').trigger('click');
         await flushPromises();

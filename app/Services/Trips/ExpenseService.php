@@ -204,6 +204,7 @@ final class ExpenseService
             'spent_at'            => $data['spent_at'] ?? now(),
             'lat'                 => $data['lat'] ?? null,
             'lng'                 => $data['lng'] ?? null,
+            'maintenance_job_id'  => $data['maintenance_job_id'] ?? null,
         ];
     }
 

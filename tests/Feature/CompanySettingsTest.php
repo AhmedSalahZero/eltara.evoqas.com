@@ -31,7 +31,7 @@ class CompanySettingsTest extends TestCase
         ], $overrides);
     }
 
-    public function test_every_company_starts_with_the_default_rules_and_the_ten_standard_categories(): void
+    public function test_every_company_starts_with_the_default_rules_and_the_standard_categories(): void
     {
         $admin = $this->companyAdmin();
 
@@ -41,7 +41,7 @@ class CompanySettingsTest extends TestCase
             ->where('settings.auto_transfer_limit', 1000)
             ->where('settings.custody_buffer_percent', 5)
             ->where('settings.month_split_rule', 'hours')
-            ->has('categories', 10));
+            ->has('categories', 11));
     }
 
     public function test_new_companies_get_their_defaults_when_created(): void
@@ -52,7 +52,7 @@ class CompanySettingsTest extends TestCase
             'default_language' => 'ar', 'admin_name' => 'Admin', 'admin_email' => 'admin@newco.test',
         ])->assertSessionHasNoErrors();
 
-        $this->assertSame(10, ExpenseCategory::query()->withoutGlobalScopes()->count());
+        $this->assertSame(11, ExpenseCategory::query()->withoutGlobalScopes()->count());
         $this->assertSame(1, CompanySetting::query()->withoutGlobalScopes()->count());
     }
 

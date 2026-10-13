@@ -26,7 +26,7 @@ class CompanySetting extends Model
     public const GA_BASES = ['own_km', 'all_km'];
 
     protected $fillable = [
-        'company_id', 'default_transfer_policy', 'auto_transfer_limit', 'custody_buffer_percent', 'over_budget_percent', 'fuel_flag_percent', 'personal_spend_to_advance',
+        'company_id', 'default_transfer_policy', 'auto_transfer_limit', 'custody_buffer_percent', 'over_budget_percent', 'fuel_flag_percent', 'personal_spend_to_advance', 'has_workshop',
         'month_split_rule', 'ga_basis', 'ga_rate_estimate',
         'receipt_photo_required', 'capture_location', 'offline_mode', 'max_hours_without_sync',
         'diesel_price', 'currency',
@@ -40,6 +40,7 @@ class CompanySetting extends Model
             'over_budget_percent'       => 'float',
             'fuel_flag_percent'         => 'float',
             'personal_spend_to_advance' => 'boolean',
+            'has_workshop'              => 'boolean',
             'ga_rate_estimate'          => 'float',
             'receipt_photo_required'    => 'boolean',
             'capture_location'          => 'boolean',

@@ -8,6 +8,7 @@ use App\Models\CargoType;
 use App\Models\ExpenseCategory;
 use App\Models\VehicleType;
 use App\Services\CompanyDefaults;
+use App\Services\Stock\StockService;
 use App\Support\Audit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -74,6 +75,7 @@ class SettingsController extends Controller
             'over_budget_percent'       => ['sometimes', 'required', 'numeric', 'min:0', 'max:500'],
             'fuel_flag_percent'         => ['sometimes', 'required', 'numeric', 'min:0', 'max:100'],
             'personal_spend_to_advance' => ['required', 'boolean'],
+            'has_workshop'              => ['sometimes', 'boolean'],
             'month_split_rule'          => ['required', Rule::in(CompanySetting::SPLIT_RULES)],
             'ga_basis'                  => ['required', Rule::in(CompanySetting::GA_BASES)],
             'ga_rate_estimate'          => ['nullable', 'numeric', 'min:0', 'max:1000'],
@@ -98,6 +100,9 @@ class SettingsController extends Controller
             $before = $settings->only($settings->getFillable()) + $company->only($companyFields);
 
             $settings->fill(collect($data)->except($companyFields)->all())->save();
+            if ($settings->has_workshop) {
+                app(StockService::class)->ensureDefault($company->id);
+            }
             $company->fill(collect($data)->only($companyFields)->all())->save();
 
             $after = $settings->fresh()->only($settings->getFillable()) + $company->only($companyFields);

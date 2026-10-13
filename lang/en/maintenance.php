@@ -20,4 +20,7 @@ return [
     'cost_required' => 'Type the cost of a finished job. Use 0 if there was no charge.',
     'interval_required' => 'A finished periodic service needs a kilometre interval, a day interval, or both.',
     'open_blocks_available' => 'This truck has an open maintenance job, so it stays in maintenance until that job is finished or deleted.',
+    'own_needs_workshop' => 'This company has no workshop of its own. Record the job as an outside workshop.',
+    'lines_required' => 'A company-workshop job needs at least one item from the store.',
+    'trip_share' => 'Maintenance carried by this truck',
 ];

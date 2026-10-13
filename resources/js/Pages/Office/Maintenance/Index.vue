@@ -29,6 +29,7 @@ import { date, inputValue, money, nowInput, num, time } from '@/Utils/format';
 const props = defineProps({
     month: String, months: Array, tab: String, vehicle: [Number, null], totals: Object,
     openJobs: Array, due: Array, log: Array, vehicles: Array,
+    workshop: Boolean, stores: Array, stock: Array,
 });
 const { t } = useI18n();
 const { can } = usePermissions();
@@ -42,8 +43,8 @@ const editing = ref(null);
 const confirming = ref(null);
 
 const blank = () => ({
-    vehicle_id: props.vehicle ?? '', kind: 'periodic', category: 'oil', status: 'open', opened_at: nowInput(), completed_at: '',
-    odometer_km: '', cost: '', workshop: '', note: '', interval_km: '', interval_days: '',
+    vehicle_id: props.vehicle ?? '', kind: 'periodic', category: 'oil', status: 'open', source: 'external', store_id: props.stores?.[0]?.id ?? '',
+    opened_at: nowInput(), completed_at: '', odometer_km: '', cost: '', workshop: '', note: '', interval_km: '', interval_days: '', lines: [],
 });
 
 const form = useForm(blank());
@@ -55,9 +56,11 @@ function openForm(entry = null, preset = null) {
     if (entry) {
         form.defaults({
             vehicle_id: entry.vehicle.id, kind: entry.kind, category: entry.category, status: entry.status,
+            source: entry.source || 'external', store_id: entry.store_id ?? props.stores?.[0]?.id ?? '',
             opened_at: inputValue(entry.opened_at), completed_at: entry.completed_at ? inputValue(entry.completed_at) : '',
             odometer_km: entry.odometer_km ?? '', cost: entry.cost ?? '', workshop: entry.workshop ?? '', note: entry.note ?? '',
             interval_km: entry.interval_km ?? '', interval_days: entry.interval_days ?? '',
+            lines: (entry.lines || []).map((l) => ({ item_id: l.item_id, qty: l.qty })),
         });
     } else {
         const status = preset?.status ?? 'open';
@@ -77,10 +80,15 @@ function openForm(entry = null, preset = null) {
 function save() {
     const options = { preserveScroll: true, onSuccess: () => (open.value = false) };
     const clean = (d) => Object.fromEntries(Object.entries(d).map(([k, v]) => [k, v === '' ? null : v]));
-    const payload = (d) => clean({
-        vehicle_id: d.vehicle_id, kind: d.kind, category: d.category, status: d.status, opened_at: d.opened_at,
-        completed_at: d.status === 'done' ? d.completed_at : null, odometer_km: d.odometer_km, cost: d.cost,
-        workshop: d.workshop, note: d.note, interval_km: d.kind === 'periodic' ? d.interval_km : null, interval_days: d.kind === 'periodic' ? d.interval_days : null,
+    const payload = (d) => ({
+        ...clean({
+            vehicle_id: d.vehicle_id, kind: d.kind, category: d.category, status: d.status, source: props.workshop ? d.source : 'external',
+            store_id: d.source === 'own' ? d.store_id : null, opened_at: d.opened_at,
+            completed_at: d.status === 'done' ? d.completed_at : null, odometer_km: d.odometer_km,
+            cost: d.source === 'own' ? null : d.cost, workshop: d.source === 'own' ? null : d.workshop, note: d.note,
+            interval_km: d.kind === 'periodic' ? d.interval_km : null, interval_days: d.kind === 'periodic' ? d.interval_days : null,
+        }),
+        lines: d.source === 'own' ? (d.lines || []).filter((l) => l.item_id && l.qty !== '' && l.qty != null) : [],
     });
 
     if (editing.value) {
@@ -206,7 +214,7 @@ function nextText(row) {
 
         <Modal :show="open" :title="editing ? t('maintenance.editTitle') : t('maintenance.addTitle')" wide @close="open = false">
             <form id="maintenance-form" @submit.prevent="save">
-                <MaintenanceForm :form="form" :vehicles="vehicles" />
+                <MaintenanceForm :form="form" :vehicles="vehicles" :workshop="workshop" :stores="stores" :stock="stock" />
                 <p v-if="form.status === 'open'" class="xs mu" style="margin:8px 0 0">{{ t('maintenance.holdsTruck') }}</p>
                 <p class="xs mu" style="margin:8px 0 0">{{ t('maintenance.costOutside') }}</p>
             </form>

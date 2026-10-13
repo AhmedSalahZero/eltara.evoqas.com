@@ -27,7 +27,7 @@ return [
         'rate' => 'Rate / km', 'closed_at' => 'Closed at', 'closed_by' => 'Closed by', 'fills' => 'Refuels', 'litres' => 'Litres', 'kmpl' => 'km / L', 'standard' => 'Standard',
         'variance' => 'vs standard %', 'flagged' => 'Flagged', 'kind' => 'Kind', 'owner' => 'Truck / driver', 'document' => 'Document', 'expires' => 'Expires', 'days' => 'Days',
         'state' => 'State', 'settled' => 'Settled', 'category' => 'Category', 'actual' => 'Actual', 'diff' => 'Difference', 'var' => 'Variance %', 'flag' => 'Flag',
-        'odometer' => 'Odometer', 'next_due' => 'Next due',
+        'odometer' => 'Odometer', 'next_due' => 'Next due', 'allocated' => 'On trips', 'remaining' => 'Left on the truck',
     ],
     'wallets' => ['custody' => 'Custody', 'collections' => 'Collections', 'advances' => 'Advances', 'pocket' => 'Own pocket'],
     'entry_types' => [
@@ -48,7 +48,7 @@ return [
     'moved_total' => 'Total actually moved between wallets: {amount} EGP.',
     'close_note' => 'Only months that have been closed are listed.',
     'fuel_note' => 'A truck is flagged when it burns more than {p}% above its standard.',
-    'maintenance_note' => ':jobs job(s) in this period, :open still open. This cost is the workshop log — it is not a trip expense and it is not added to the month\'s G&A.',
+    'maintenance_note' => ':jobs job(s) in this period, :open still open. The cost is added to the truck\'s later trips as a company-paid maintenance expense. Do not enter the same amount again in the month\'s G&A.',
     'km_suffix' => 'km',
     'maintenance_kind' => ['periodic' => 'Periodic', 'emergency' => 'Breakdown'],
     'maintenance_category' => ['oil' => 'Oil', 'tyres' => 'Tyres', 'filters' => 'Filters', 'other' => 'Other'],
