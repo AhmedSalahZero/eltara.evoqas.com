@@ -22,7 +22,7 @@ return [
         'loading' => 'بدء تحميل', 'departed' => 'انطلاق', 'delivered' => 'تسليم', 'confirmed' => 'تأكيد', 'resolved' => 'حل', 'custody' => 'صرف عهدة',
     ],
     'actors' => ['user' => 'مستخدم مكتب', 'driver' => 'سائق', 'client' => 'عميل', 'system' => 'النظام'],
-    'subjects' => ['Trip' => 'رحلة', 'Vehicle' => 'شاحنة', 'Driver' => 'سائق', 'Customer' => 'عميل', 'User' => 'مستخدم', 'WalletTransfer' => 'تحويل', 'MonthClose' => 'إقفال شهر', 'Invoice' => 'فاتورة', 'FuelEntry' => 'تموين', 'DriverAdvance' => 'سلفة', 'MaintenanceJob' => 'شغل صيانة'],
+    'subjects' => ['Trip' => 'رحلة', 'Vehicle' => 'شاحنة', 'Driver' => 'سائق', 'Customer' => 'عميل', 'User' => 'مستخدم', 'WalletTransfer' => 'تحويل', 'MonthClose' => 'إقفال شهر', 'Invoice' => 'فاتورة', 'FuelEntry' => 'تموين', 'DriverAdvance' => 'سلفة', 'MaintenanceJob' => 'صيانة'],
     'columns' => ['when' => 'الوقت', 'who' => 'من', 'action' => 'الإجراء', 'subject' => 'على', 'details' => 'التفاصيل', 'ip' => 'عنوان IP'],
     'title' => 'سجل المراجعة',
 ];
