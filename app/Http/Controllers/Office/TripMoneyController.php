@@ -82,6 +82,13 @@ class TripMoneyController extends Controller
         ), __('trips.ok.collection'));
     }
 
+    public function confirmCollectionForClient(Request $request, Trip $trip, TripCollection $collection, CollectionService $service): RedirectResponse
+    {
+        $data = $request->validate(['note' => ['required', 'string', 'max:200']]);
+
+        return $this->attempt(fn () => $service->confirmForClient($collection, $request->user('web'), $data['note']), __('trips.ok.confirmed_for_client'));
+    }
+
     public function resolveCollection(Request $request, Trip $trip, TripCollection $collection, CollectionService $service): RedirectResponse
     {
         $data = $request->validate([

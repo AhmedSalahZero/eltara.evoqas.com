@@ -31,6 +31,7 @@ use App\Http\Controllers\Office\SettingsController as OfficeSettingsController;
 use App\Http\Controllers\Office\StockController as OfficeStockController;
 use App\Http\Controllers\Office\TripActionController as OfficeTripActionController;
 use App\Http\Controllers\Office\TripController as OfficeTripController;
+use App\Http\Controllers\Office\TripCrewController as OfficeTripCrewController;
 use App\Http\Controllers\Office\TripMoneyController as OfficeTripMoneyController;
 use App\Http\Controllers\Office\WalletController as OfficeWalletController;
 use App\Http\Controllers\Office\UserController as OfficeUserController;
@@ -166,6 +167,7 @@ Route::prefix('office')->name('office.')->middleware(['auth:web', 'office', 'rea
     Route::put('trips/{trip}/policy', [OfficeTripActionController::class, 'policy'])->middleware('can:trips.edit_policy')->name('trips.policy');
     Route::post('trips/{trip}/charges', [OfficeTripActionController::class, 'storeCharge'])->middleware('can:trips.edit')->name('trips.charges.store');
 
+    Route::post('trips/{trip}/crew', [OfficeTripCrewController::class, 'store'])->middleware('can:trips.edit')->name('trips.crew.store');
     Route::post('trips/{trip}/expenses', [OfficeTripMoneyController::class, 'storeExpense'])->middleware('can:trip_expenses.create')->name('trips.expenses.store');
     Route::post('trips/{trip}/collections', [OfficeTripMoneyController::class, 'storeCollection'])->middleware('can:wallet_transfers.create')->name('trips.collections.store');
     Route::post('trips/{trip}/transfers', [OfficeTripMoneyController::class, 'storeTransfer'])->middleware('can:wallet_transfers.create')->name('trips.transfers.store');
@@ -178,6 +180,9 @@ Route::prefix('office')->name('office.')->middleware(['auth:web', 'office', 'rea
         Route::post('trips/{trip}/expenses/{expense}', [OfficeTripMoneyController::class, 'updateExpense'])->middleware('can:trip_expenses.edit')->name('trips.expenses.update');
         Route::delete('trips/{trip}/expenses/{expense}', [OfficeTripMoneyController::class, 'destroyExpense'])->middleware('can:trip_expenses.delete')->name('trips.expenses.destroy');
         Route::get('trips/{trip}/expenses/{expense}/receipt', [OfficeTripController::class, 'receipt'])->middleware('can:trips.view')->name('trips.expenses.receipt');
+        Route::patch('trips/{trip}/crew/{crew}', [OfficeTripCrewController::class, 'update'])->middleware('can:trips.edit')->name('trips.crew.update');
+        Route::delete('trips/{trip}/crew/{crew}', [OfficeTripCrewController::class, 'destroy'])->middleware('can:trips.edit')->name('trips.crew.destroy');
+        Route::post('trips/{trip}/collections/{collection}/confirm-for-client', [OfficeTripMoneyController::class, 'confirmCollectionForClient'])->middleware('can:wallet_transfers.approve')->name('trips.collections.confirm-for-client');
         Route::post('trips/{trip}/collections/{collection}/resolve', [OfficeTripMoneyController::class, 'resolveCollection'])->middleware('can:wallet_transfers.approve')->name('trips.collections.resolve');
         Route::get('trips/{trip}/collections/{collection}/receipt', [OfficeTripController::class, 'collectionReceipt'])->middleware('can:trips.view')->name('trips.collections.receipt');
     });

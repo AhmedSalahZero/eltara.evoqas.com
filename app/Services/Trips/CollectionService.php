@@ -22,6 +22,8 @@ use Illuminate\Support\Facades\DB;
 //                        confirmed it.
 //    confirmByDriver() — the driver confirms a client-recorded amount
 //    confirmByClient() — the client confirms a driver-recorded amount
+//    confirmForClient()— someone with authority confirms for a client who
+//                        has no portal link (marked, with a reason, audited)
 //    dispute()         — either side says "that is not right"
 //    resolve()         — management decides a dispute: the amount was
 //                        received ("accepted") or not ("cancelled")
@@ -107,6 +109,31 @@ final class CollectionService
     public function confirmByClient(TripCollection $collection, Actor $actor): void
     {
         $this->change($collection, $actor, 'collection.client_confirmed', fn () => $collection->client_confirmed_at ??= now());
+    }
+
+    /**
+     * The client cannot confirm (no portal link, or he never opens it), so the office does it
+     * for him. A reason is required and the audit log says who confirmed in his name.
+     * The person who typed the cash in cannot also confirm it for the client (the company admin may).
+     */
+    public function confirmForClient(TripCollection $collection, User $user, ?string $note): void
+    {
+        $note = trim((string) $note);
+        if ($note === '') {
+            throw TripRuleException::because('trips.confirm_note_required');
+        }
+        if ($collection->state() !== 'awaiting_client') {
+            throw TripRuleException::because('trips.confirm_not_waiting');
+        }
+        if ($collection->recorded_by === 'office' && (int) $collection->created_by === $user->id && ! $user->isCompanyAdmin()) {
+            throw TripRuleException::because('trips.own_collection_confirm');
+        }
+
+        $this->change($collection, Actor::user($user), 'collection.client_confirmed_by_office', function () use ($collection, $user, $note) {
+            $collection->client_confirmed_at ??= now();
+            $collection->client_confirmed_for_by = $user->id;
+            $collection->client_confirm_note = mb_substr($note, 0, 250);
+        });
     }
 
     /** @param  string  $side  driver | client */

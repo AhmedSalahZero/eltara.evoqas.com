@@ -311,8 +311,8 @@ class DashboardService
             $eta = null;
             if ($t->status === 'on_road') {
                 $start = $t->departed_at ?? $now;
-                // Expected arrival = departure + half of the route's usual round-trip hours (as the client portal says).
-                $end = $start->copy()->addMinutes((int) round(($t->planned_hours ?: 24) * 60 / 2));
+                // Expected arrival = departure + half of the route's driving hours, round trip (as the client portal says).
+                $end = $start->copy()->addMinutes((int) round(($t->road_hours ?: $t->planned_hours ?: 24) * 60 / 2));
                 $total = max(60, $start->diffInSeconds($end, true));
                 $progress = max(6.0, min(94.0, $start->diffInSeconds($now, true) / $total * 100));
                 $eta = max(1, (int) round($now->diffInMinutes($end, false) / 60));

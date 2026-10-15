@@ -43,7 +43,7 @@ class Trip extends Model
 
     protected $fillable = [
         'company_id', 'seq', 'number', 'customer_id', 'trip_route_id', 'vehicle_id', 'driver_id', 'client_request_id', 'is_hired',
-        'status', 'loading_at', 'cargo_type_id', 'weight_tons', 'notes', 'km', 'planned_hours', 'freight_price', 'price_source', 'client_pays_cash',
+        'status', 'loading_at', 'cargo_type_id', 'weight_tons', 'notes', 'km', 'planned_hours', 'road_hours', 'freight_price', 'price_source', 'client_pays_cash',
         'custody_planned', 'standard_budget', 'transfer_policy', 'auto_transfer_limit',
         'accepted_at', 'custody_issued_at', 'loading_started_at', 'departed_at', 'delivered_at', 'settled_at', 'cancelled_at',
         'pod_path', 'pod_receiver', 'cancel_reason', 'settled_by', 'created_by', 'invoice_id',
@@ -57,6 +57,7 @@ class Trip extends Model
             'loading_at'          => 'datetime',
             'km'                  => 'integer',
             'planned_hours'       => 'float',
+            'road_hours'          => 'float',
             'weight_tons'         => 'float',
             'freight_price'       => 'float',
             'custody_planned'     => 'float',
@@ -144,6 +145,18 @@ class Trip extends Model
     public function charges(): HasMany
     {
         return $this->hasMany(TripCharge::class);
+    }
+
+    /** A second driver or assistant recorded on the trip (the main driver still holds the money). */
+    public function crew(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(TripCrew::class);
+    }
+
+    /** Same relation under the plural name Laravel looks for when the address says trips/{trip}/crew/{crew}. */
+    public function crews(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->crew();
     }
 
     public function expenses(): HasMany

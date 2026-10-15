@@ -104,7 +104,7 @@ const tabs = [['pending', 'pending'], ['review', 'review'], ['settle', 'settle']
 
         <!-- Trips to settle -->
         <div v-if="tab === 'settle'" class="tw">
-            <table>
+            <table class="tc">
                 <thead><tr>
                     <th>{{ t('wal.cols.trip') }}</th><th>{{ t('wal.cols.driver') }}</th><th>{{ t('wal.cols.delivered') }}</th>
                     <th class="e">{{ t('wal.cols.custody') }}</th><th class="e">{{ t('wal.cols.collections') }}</th><th class="e">{{ t('wal.cols.pocket') }}</th>
@@ -128,7 +128,7 @@ const tabs = [['pending', 'pending'], ['review', 'review'], ['settle', 'settle']
 
         <!-- Driver balances -->
         <div v-if="tab === 'balances'" class="tw">
-            <table>
+            <table class="tc">
                 <thead><tr>
                     <th>{{ t('wal.cols.driver') }}</th><th>{{ t('wal.cols.vehicle') }}</th><th class="e">{{ t('wal.cols.openTrips') }}</th>
                     <th class="e">{{ t('wal.cols.custody') }}</th><th class="e">{{ t('wal.cols.collections') }}</th><th class="e">{{ t('wal.cols.held') }}</th>

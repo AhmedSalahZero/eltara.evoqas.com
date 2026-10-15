@@ -115,7 +115,7 @@ class TripController extends Controller
     {
         $trip->load([
             'customer:id,name_ar,name_en,may_pay_driver_cash', 'route', 'vehicle.vehicleType', 'cargoType', 'driver:id,name,mobile',
-            'charges', 'expenses.category', 'expenses.transfer:id,status', 'collections', 'settlement.settledBy:id,name', 'rating.author:id,name', 'clientRequest:id,number', 'invoice:id,number,issued_on',
+            'charges', 'crew', 'expenses.category', 'expenses.transfer:id,status', 'collections', 'settlement.settledBy:id,name', 'rating.author:id,name', 'clientRequest:id,number', 'invoice:id,number,issued_on',
             'transfers' => fn ($q) => $q->with('decider:id,name', 'reviewer:id,name')->latest('requested_at'),
             'events' => fn ($q) => $q->orderBy('occurred_at')->orderBy('id'),
         ]);
@@ -156,6 +156,10 @@ class TripController extends Controller
                 'located'     => $e->lat !== null,
                 'transfer'    => $e->transfer?->status,
             ])->values(),
+            'crew' => $trip->crew->map(fn (\App\Models\TripCrew $c) => [
+                'id' => $c->id, 'role' => $c->role, 'name' => $c->name, 'allowance' => $c->allowance, 'note' => $c->note,
+                'paid' => $c->trip_expense_id !== null,
+            ])->values(),
             'collections' => $trip->collections->sortByDesc('received_at')->map(fn (TripCollection $c) => [
                 'id'          => $c->id,
                 'amount'      => $c->amount,
@@ -165,6 +169,8 @@ class TripController extends Controller
                 'counts'      => $c->counts(),
                 'note'        => $c->note,
                 'dispute_note'=> $c->dispute_note,
+                'confirmed_for_client' => $c->confirmedForClient(),
+                'client_confirm_note'  => $c->client_confirm_note,
                 'has_receipt' => (bool) $c->receipt_path,
             ])->values(),
             'transfers'   => $trip->transfers->map(fn (WalletTransfer $t) => $this->transferRow($t, $user, $transfers))->values(),
@@ -424,6 +430,7 @@ class TripController extends Controller
             'vehicle'             => $t->vehicle ? [
                 'id' => $t->vehicle->id, 'number' => $t->vehicle->plate_number, 'letters' => $t->vehicle->plate_letters,
                 'type' => $t->vehicle->vehicleType?->displayName(), 'owner' => $t->vehicle->owner_name,
+                'in_maintenance' => $t->vehicle->status === 'maintenance',
             ] : null,
             'driver'              => $t->driver ? ['id' => $t->driver->id, 'name' => $t->driver->name, 'mobile' => $t->driver->mobile] : null,
             'loading_at'          => $t->loading_at?->toIso8601String(),
@@ -437,6 +444,7 @@ class TripController extends Controller
             'cancel_reason'       => $t->cancel_reason,
             'km'                  => $t->km,
             'planned_hours'       => $t->planned_hours,
+            'road_hours'          => $t->road_hours,
             'cargo_type_id'       => $t->cargo_type_id,
             'cargo'               => $t->cargoType?->displayName(),
             'weight_tons'         => $t->weight_tons,

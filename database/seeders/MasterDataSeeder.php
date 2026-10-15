@@ -42,18 +42,19 @@ class MasterDataSeeder extends Seeder
         'matrouh' => ['مرسى مطروح', 'Marsa Matrouh'],
     ];
 
-    /** key => [from, to, km, hours, base price, budget per category code] — from the approved demo */
+    /** key => [from, to, km, [driving hours, waiting hours], base price, budget per category code] — from the approved demo.
+     *  Driving = the round trip on the road; waiting = loading + unloading + paperwork. (Driving + waiting = the old "usual hours".) */
     private const ROUTES = [
-        'R1'  => ['obour', 'alex', 450, 17, 10200, ['fuel' => 3450, 'toll' => 260, 'weigh' => 120, 'allow' => 600, 'labor' => 450]],
-        'R2'  => ['tenth', 'sokhna', 280, 13, 6900, ['fuel' => 2150, 'toll' => 180, 'weigh' => 120, 'allow' => 400, 'labor' => 400]],
-        'R3'  => ['sadat', 'damietta', 460, 17, 10400, ['fuel' => 3550, 'toll' => 240, 'weigh' => 120, 'allow' => 600, 'labor' => 450]],
-        'R4'  => ['cairo', 'assiut', 760, 40, 16800, ['fuel' => 5850, 'toll' => 320, 'weigh' => 240, 'allow' => 1100, 'labor' => 500, 'night' => 300]],
-        'R5'  => ['october', 'portsaid', 500, 22, 11300, ['fuel' => 3850, 'toll' => 280, 'weigh' => 120, 'allow' => 700, 'labor' => 450]],
-        'R6'  => ['obour', 'hurghada', 920, 44, 20400, ['fuel' => 7100, 'toll' => 360, 'weigh' => 240, 'allow' => 1300, 'labor' => 550, 'night' => 400]],
-        'R7'  => ['alex', 'minya', 660, 38, 14600, ['fuel' => 5100, 'toll' => 300, 'weigh' => 240, 'allow' => 950, 'labor' => 500, 'night' => 300]],
-        'R8'  => ['benisuef', 'cairo', 260, 12, 6200, ['fuel' => 2000, 'toll' => 140, 'weigh' => 120, 'allow' => 380, 'labor' => 350]],
-        'R9'  => ['tenth', 'ismailia', 180, 10, 4700, ['fuel' => 1400, 'toll' => 90, 'allow' => 300, 'labor' => 350]],
-        'R10' => ['borg', 'matrouh', 500, 22, 11500, ['fuel' => 3850, 'toll' => 200, 'weigh' => 120, 'allow' => 700, 'labor' => 450]],
+        'R1'  => ['obour', 'alex', 450, [8.5, 8.5], 10200, ['fuel' => 3450, 'toll' => 260, 'weigh' => 120, 'allow' => 600, 'labor' => 450]],
+        'R2'  => ['tenth', 'sokhna', 280, [5.5, 7.5], 6900, ['fuel' => 2150, 'toll' => 180, 'weigh' => 120, 'allow' => 400, 'labor' => 400]],
+        'R3'  => ['sadat', 'damietta', 460, [9, 8], 10400, ['fuel' => 3550, 'toll' => 240, 'weigh' => 120, 'allow' => 600, 'labor' => 450]],
+        'R4'  => ['cairo', 'assiut', 760, [16, 24], 16800, ['fuel' => 5850, 'toll' => 320, 'weigh' => 240, 'allow' => 1100, 'labor' => 500, 'night' => 300]],
+        'R5'  => ['october', 'portsaid', 500, [10, 12], 11300, ['fuel' => 3850, 'toll' => 280, 'weigh' => 120, 'allow' => 700, 'labor' => 450]],
+        'R6'  => ['obour', 'hurghada', 920, [18, 26], 20400, ['fuel' => 7100, 'toll' => 360, 'weigh' => 240, 'allow' => 1300, 'labor' => 550, 'night' => 400]],
+        'R7'  => ['alex', 'minya', 660, [13, 25], 14600, ['fuel' => 5100, 'toll' => 300, 'weigh' => 240, 'allow' => 950, 'labor' => 500, 'night' => 300]],
+        'R8'  => ['benisuef', 'cairo', 260, [5, 7], 6200, ['fuel' => 2000, 'toll' => 140, 'weigh' => 120, 'allow' => 380, 'labor' => 350]],
+        'R9'  => ['tenth', 'ismailia', 180, [3.5, 6.5], 4700, ['fuel' => 1400, 'toll' => 90, 'allow' => 300, 'labor' => 350]],
+        'R10' => ['borg', 'matrouh', 500, [10, 12], 11500, ['fuel' => 3850, 'toll' => 200, 'weigh' => 120, 'allow' => 700, 'labor' => 450]],
     ];
 
     /** [ar, en, price factor, routes, terms days, pays cash] */
@@ -93,10 +94,10 @@ class MasterDataSeeder extends Seeder
 
         // Routes + standard budgets
         $routes = [];
-        foreach (self::ROUTES as $key => [$from, $to, $km, $hours, $price, $budget]) {
+        foreach (self::ROUTES as $key => [$from, $to, $km, [$driving, $waiting], $price, $budget]) {
             $route = TripRoute::query()->withoutGlobalScopes()->firstOrCreate(
                 ['company_id' => $company->id, 'origin_en' => self::CITIES[$from][1], 'destination_en' => self::CITIES[$to][1]],
-                ['origin_ar' => self::CITIES[$from][0], 'destination_ar' => self::CITIES[$to][0], 'weight_tons' => 25, 'km_round_trip' => $km, 'usual_hours' => $hours, 'is_active' => true],
+                ['origin_ar' => self::CITIES[$from][0], 'destination_ar' => self::CITIES[$to][0], 'weight_tons' => 25, 'km_round_trip' => $km, 'usual_hours' => $driving, 'wait_hours' => $waiting, 'is_active' => true],
             );
             foreach ($budget as $code => $amount) {
                 TripRouteBudget::query()->withoutGlobalScopes()->firstOrCreate(

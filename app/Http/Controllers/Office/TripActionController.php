@@ -11,6 +11,7 @@ use App\Services\Trips\Actor;
 use App\Services\Trips\TripService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 
 // ══════════════════════════════════════════════════════════════════
@@ -40,14 +41,36 @@ class TripActionController extends Controller
 
     public function step(Request $request, Trip $trip, TripService $service): RedirectResponse
     {
-        $step = $request->validate(['step' => ['required', Rule::in(['accept', 'loading', 'depart'])]])['step'];
+        $data = $request->validate([
+            'step' => ['required', Rule::in(['accept', 'loading', 'depart'])],
+            'at'   => ['nullable', 'date'],
+        ]);
+        $step = $data['step'];
+        $at = ! empty($data['at']) ? Carbon::parse($data['at']) : null;
         $actor = Actor::user($request->user('web'));
 
-        return $this->attempt(fn () => match ($step) {
-            'accept'  => $service->accept($trip, $actor),
-            'loading' => $service->startLoading($trip, $actor),
-            'depart'  => $service->depart($trip, $actor),
+        $response = $this->attempt(fn () => match ($step) {
+            'accept'  => $service->accept($trip, $actor, null, null, $at),
+            'loading' => $service->startLoading($trip, $actor, null, null, $at),
+            'depart'  => $service->depart($trip, $actor, null, null, $at),
         }, __('trips.ok.step'));
+
+        // Custody the office issued but the driver has not signed for: the trip can go on, but not silently.
+        if (! session()->has('error') && in_array($step, ['loading', 'depart'], true) && ! $trip->is_hired && $trip->custody_issued_at) {
+            $issued = (float) \App\Models\WalletEntry::query()->where('trip_id', $trip->id)->where('wallet', 'custody')->where('type', 'custody_issued')->sum('amount');
+            $signed = (float) \App\Models\TripEvent::query()->where('trip_id', $trip->id)->where('type', 'custody_received')->get()->sum(fn ($e) => (float) ($e->meta['amount'] ?? 0));
+            if ($issued - $signed > 0.01) {
+                $response->with('warning', __('trips.custody_unsigned_warn'));
+            }
+        }
+
+        // Not a block (a running trip is left alone), but never silent.
+        $vehicle = $trip->vehicle()->first();
+        if (! session()->has('error') && $vehicle && $vehicle->status === 'maintenance') {
+            $response->with('warning', __('trips.truck_in_maintenance_warn', ['plate' => $vehicle->plateText()]));
+        }
+
+        return $response;
     }
 
     public function custody(Request $request, Trip $trip, TripService $service): RedirectResponse
@@ -68,10 +91,12 @@ class TripActionController extends Controller
         $data = $request->validate([
             'pod'      => ['required', 'image', 'max:8192'],
             'receiver' => ['nullable', 'string', 'max:120'],
+            'at'       => ['nullable', 'date'],
         ]);
+        $at = ! empty($data['at']) ? Carbon::parse($data['at']) : null;
 
         return $this->attempt(
-            fn () => $service->deliver($trip, $request->file('pod'), $data['receiver'] ?? null, Actor::user($request->user('web'))),
+            fn () => $service->deliver($trip, $request->file('pod'), $data['receiver'] ?? null, Actor::user($request->user('web')), null, null, $at),
             __('trips.ok.delivered'),
         );
     }

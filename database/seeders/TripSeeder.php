@@ -174,7 +174,7 @@ class TripSeeder extends Seeder
             'vehicle_id'      => $vehicle->id,
             'loading_at'      => $start->copy(),
             'cargo_type_id'   => $this->cargoId(['حديد تسليح', 'أسمنت معبأ', 'رخام خام', 'حاويات 40 قدم', 'دقيق', 'أخشاب'][$route->id % 6]),
-            'weight_tons'     => [28, 32.5, 24, 20, 30, 18][$route->id % 6],
+            'weight_tons'     => min([28, 32.5, 24, 20, 30, 18][$route->id % 6], (float) ($vehicle->capacity_tons ?: 1000)),
             'client_pays_cash'=> ($x['cash'] ?? 0) > 0,
             'transfer_policy' => $x['policy'] ?? 'limit',
             'hire_fee'        => $x['hire_fee'] ?? null,
@@ -188,7 +188,8 @@ class TripSeeder extends Seeder
 
         $driver = $trip->driver_id ? Driver::query()->find($trip->driver_id) : null;
         $asDriver = $driver ? Actor::driver($driver) : $user;
-        $hours = max(6.0, (float) ($route->usual_hours ?? 12));
+        // The whole time the truck is busy: driving + waiting to load and unload.
+        $hours = max(6.0, (float) ($trip->planned_hours ?? $route->usual_hours ?? 12));
         $budget = $route->budgets->mapWithKeys(fn ($b) => [$b->category->code => (float) $b->amount]);
         $over = (float) ($x['over'] ?? 1.0);
 

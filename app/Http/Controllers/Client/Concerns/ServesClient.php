@@ -79,11 +79,13 @@ trait ServesClient
     /** Usual travel time is about half of the round trip (assumption shown as "expected"). */
     protected function expectedArrival(Trip $trip): ?string
     {
-        if ($trip->status !== 'on_road' || ! $trip->departed_at || ! $trip->planned_hours) {
+        // The driving hours of the round trip (old trips only have planned_hours, which was the same thing).
+        $hours = $trip->road_hours ?: $trip->planned_hours;
+        if ($trip->status !== 'on_road' || ! $trip->departed_at || ! $hours) {
             return null;
         }
 
-        return $trip->departed_at->copy()->addMinutes((int) round($trip->planned_hours * 60 / 2))->toIso8601String();
+        return $trip->departed_at->copy()->addMinutes((int) round($hours * 60 / 2))->toIso8601String();
     }
 
     /** A trip as one row of the client's lists: no cost, no profit, no custody. */

@@ -20,7 +20,8 @@ use Tests\TestCase;
 //  An open job holds the truck (no new booking) and the dashboard
 //  counts it. Finishing or deleting the last open job releases it.
 //  A job recorded already done does not. The cost appears on the
-//  maintenance report and nowhere in trip expenses or month-close G&A.
+//  maintenance report and on the truck's later trips as an overhead
+//  (never in month-close G&A).
 // ══════════════════════════════════════════════════════════════════
 
 class MaintenanceTest extends TestCase
@@ -82,6 +83,17 @@ class MaintenanceTest extends TestCase
         $this->assertSame('company', $share[0]->paid_from);
         $this->assertEquals(450.0, (float) $share[0]->amount);
         $this->assertSame(0, GaEntry::query()->withoutGlobalScopes()->count());
+    }
+
+    public function test_an_open_job_warns_about_trips_already_booked_on_the_truck(): void
+    {
+        $this->setUpFleet();
+        $this->actingAs($this->admin, 'web');
+        $this->post('/office/trips', $this->tripData())->assertSessionHasNoErrors();
+        $trip = Trip::query()->firstOrFail();
+
+        $this->post('/office/maintenance', $this->emergency())->assertSessionHas('warning');
+        $this->assertStringContainsString($trip->number, session('warning'));
     }
 
     public function test_a_breakdown_during_a_running_trip_does_not_cancel_that_trip(): void

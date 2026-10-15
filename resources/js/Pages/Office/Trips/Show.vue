@@ -44,7 +44,7 @@ import { date, inputValue, money, nowInput, num, time } from '@/Utils/format';
 
 const props = defineProps({ feedback: Object,
     trip: Object, figures: Object, wallets: Object, available: Number, settlement: Object, nextStep: String,
-    charges: Array, expenses: Array, collections: Array, transfers: Array, events: Array, options: Object,
+    charges: Array, crew: { type: Array, default: () => [] }, expenses: Array, collections: Array, transfers: Array, events: Array, options: Object,
 });
 const { t } = useI18n();
 const { can } = usePermissions();
@@ -78,9 +78,9 @@ const nextAllowed = computed(() => ({
 
 function doNext() {
     const s = props.nextStep;
-    if (['accept', 'loading', 'depart'].includes(s)) router.post(route('office.trips.step', tr.value.id), { step: s }, { preserveScroll: true });
+    if (['accept', 'loading', 'depart'].includes(s)) { stepForm.startFresh({ step: s, at: nowLocal() }); openModal('step'); }
     else if (s === 'custody') openCustody();
-    else if (s === 'deliver') openModal('deliver');
+    else if (s === 'deliver') { deliverForm.at = nowLocal(); openModal('deliver'); }
     else if (s === 'settle') { settleForm.startFresh(); openModal('settle'); }
 }
 
@@ -96,7 +96,8 @@ function openCustody() {
     openModal('custody');
 }
 
-const deliverForm = useForm({ pod: null, receiver: '' });
+const deliverForm = useForm({ pod: null, receiver: '', at: '' });
+const stepForm = useBlankForm({ step: '', at: '' });
 const cashForm = useBlankForm({ amount: '', received_at: '', note: '', receipt: null });
 const transferForm = useBlankForm({ amount: '', reason: '' });
 const chargeForm = useBlankForm({ kind: 'extra', label: '', amount: '' });
@@ -105,6 +106,21 @@ const cancelForm = useBlankForm({ reason: '' });
 const settleForm = useBlankForm({ note: '', received_by: '', accept_unconfirmed: false });
 const decisionForm = useBlankForm({ note: '' });
 const resolveForm = useBlankForm({ resolution: 'accepted', note: '' });
+const confirmForm = useBlankForm({ note: '' });
+const crewForm = useBlankForm({ role: 'assistant', name: '', allowance: '', note: '' });
+const editingCrew = ref(null);
+function openCrew(c = null) {
+    editingCrew.value = c;
+    crewForm.startFresh(c ? { role: c.role, name: c.name, allowance: c.allowance || '', note: c.note ?? '' } : {});
+    openModal('crew');
+}
+const saveCrew = () => (editingCrew.value
+    ? crewForm.patch(route('office.trips.crew.update', [tr.value.id, editingCrew.value.id]), done)
+    : crewForm.post(route('office.trips.crew.store', tr.value.id), done));
+const removeCrew = () => router.delete(route('office.trips.crew.destroy', [tr.value.id, target.value.id]), { preserveScroll: true, onFinish: close });
+const custodySigned = computed(() => props.events.filter((e) => e.type === 'custody_received').reduce((sum, e) => sum + (e.meta?.amount || 0), 0));
+const custodyUnsigned = computed(() => !tr.value.is_hired && props.wallets.custody.issued > 0 && custodySigned.value < props.wallets.custody.issued - 0.01);
+const crewTotal = computed(() => props.crew.reduce((sum, c) => sum + (c.allowance || 0), 0));
 const target = ref(null); // the transfer / collection / expense / charge being acted on
 
 function openPolicy() {
@@ -157,6 +173,7 @@ function deleteExpense() {
 const approve = (x) => router.post(route('office.transfers.approve', x.id), {}, { preserveScroll: true });
 const review = (x) => router.post(route('office.transfers.review', x.id), {}, { preserveScroll: true });
 function openReject(x) { target.value = x; decisionForm.startFresh(); openModal('reject'); }
+function openConfirmFor(c) { target.value = c; confirmForm.startFresh(); openModal('confirmFor'); }
 function openResolve(c) { target.value = c; resolveForm.startFresh(); openModal('resolve'); }
 const removeCharge = () => router.delete(route('office.trips.charges.destroy', [tr.value.id, target.value.id]), { preserveScroll: true, onFinish: close });
 
@@ -207,6 +224,7 @@ const pendingCount = computed(() => props.transfers.filter((x) => x.status === '
         </div>
 
         <div v-if="trip.status === 'cancelled'" class="note rd" style="margin-top:12px"><AppIcon name="x" /><div>{{ t('trip.cancelledNote', { date: date(trip.cancelled_at), reason: trip.cancel_reason }) }}</div></div>
+        <div v-if="trip.vehicle?.in_maintenance && ['planned', 'accepted', 'loading'].includes(trip.status)" class="note am" style="margin-top:12px"><AppIcon name="alert" /><div>{{ t('trip.maintenanceNote') }}</div></div>
         <div v-if="trip.is_hired" class="note am" style="margin-top:12px"><AppIcon name="info" /><div>{{ t('trip.hiredNote', { owner: trip.vehicle?.owner ?? '' }) }}</div></div>
 
         <div class="g-73" style="margin-top:14px;align-items:start">
@@ -310,6 +328,26 @@ const pendingCount = computed(() => props.transfers.filter((x) => x.status === '
                     </div>
                 </div>
 
+                <!-- Crew: second driver / assistant (the main driver holds the money) -->
+                <div class="pn">
+                    <div class="pn-h"><div><h3><AppIcon name="person" />{{ t('trip.crew') }}</h3><div class="s">{{ t('trip.crewSub') }}</div></div>
+                        <button v-if="open && can('trips.edit') && crew.length < 4" class="btn btn-ln btn-sm" @click="openCrew()"><AppIcon name="plus" /> {{ t('trip.addCrew') }}</button></div>
+                    <div v-if="!crew.length" class="empty">{{ t('trip.noCrew') }}</div>
+                    <div v-else class="rowlist">
+                        <div v-for="c in crew" :key="c.id" class="r">
+                            <div>
+                                <b>{{ c.name }}</b> <span class="bd nodot bl" style="margin-inline-start:6px">{{ t('trip.crewRoles.' + c.role) }}</span>
+                                <div class="xs mu"><template v-if="c.allowance"><span class="num">{{ money(c.allowance) }}</span> · {{ c.paid ? t('trip.crewPaid') : t('trip.crewWaiting') }}</template><template v-else>{{ t('trip.crewNoAllowance') }}</template><template v-if="c.note"> · {{ c.note }}</template></div>
+                            </div>
+                            <div v-if="open && can('trips.edit')" class="two-side">
+                                <button class="ib" :title="t('common.edit')" @click="openCrew(c)"><AppIcon name="edit" /></button>
+                                <button class="ib" :title="t('common.delete')" @click="target = c; openModal('removeCrew')"><AppIcon name="trash" /></button>
+                            </div>
+                        </div>
+                        <div v-if="crewTotal" class="xs mu" style="padding:6px 0 0">{{ t('trip.crewTotal', { amount: money(crewTotal) }) }}</div>
+                    </div>
+                </div>
+
                 <!-- Cash from the client -->
                 <div class="pn">
                     <div class="pn-h"><div><h3><AppIcon name="hand" />{{ t('trip.cash') }}</h3><div class="s">{{ t('trip.cashSub') }}</div></div>
@@ -320,11 +358,12 @@ const pendingCount = computed(() => props.transfers.filter((x) => x.status === '
                             <div>
                                 <b class="num" :style="c.counts ? '' : 'text-decoration:line-through;opacity:.7'">{{ money(c.amount) }}</b>
                                 <span class="bd nodot" :class="cColour[c.state]" style="margin-inline-start:6px">{{ t('trip.cState.' + c.state) }}</span>
-                                <div class="xs mu"><span class="num">{{ when(c.received_at) }}</span> · {{ t('trip.recordedBy.' + c.recorded_by) }}<template v-if="c.note"> · {{ c.note }}</template><template v-if="c.dispute_note"> · «{{ c.dispute_note }}»</template></div>
+                                <div class="xs mu"><span class="num">{{ when(c.received_at) }}</span> · {{ t('trip.recordedBy.' + c.recorded_by) }}<template v-if="c.note"> · {{ c.note }}</template><template v-if="c.dispute_note"> · «{{ c.dispute_note }}»</template><template v-if="c.confirmed_for_client"> · {{ t('trip.confirmedByOffice') }}<template v-if="c.client_confirm_note"> «{{ c.client_confirm_note }}»</template></template></div>
                             </div>
                             <div class="two-side">
                                 <span class="bd nodot" :class="['confirmed', 'awaiting_client'].includes(c.state) || c.recorded_by !== 'client' ? 'gn' : 'pl'">{{ t('trip.driverOk') }}</span>
                                 <span class="bd nodot" :class="['confirmed', 'awaiting_driver'].includes(c.state) ? 'gn' : 'pl'">{{ t('trip.clientOk') }}</span>
+                                <button v-if="c.state === 'awaiting_client' && open && can('wallet_transfers.approve')" class="btn btn-ln btn-sm" @click="openConfirmFor(c)">{{ t('trip.confirmForClient') }}</button>
                                 <button v-if="c.state === 'disputed' && open && can('wallet_transfers.approve')" class="btn btn-rd btn-sm" @click="openResolve(c)">{{ t('trip.resolve') }}</button>
                             </div>
                         </div>
@@ -351,6 +390,10 @@ const pendingCount = computed(() => props.transfers.filter((x) => x.status === '
                         <div v-if="!trip.is_hired" class="wal w-cu">
                             <div class="wh"><span class="ic"><AppIcon name="wallet" /></span><div><b>{{ t('trip.custodyW') }}</b><span>{{ t('trip.custodySub') }}</span></div>
                                 <button v-if="started && !['delivered'].includes(trip.status) && can('wallet_transfers.create')" class="btn btn-ln btn-sm" style="margin-inline-start:auto" @click="openCustody"><AppIcon name="plus" /> {{ t('trip.issueCustody') }}</button></div>
+                            <div v-if="wallets.custody.issued > 0" class="xs" style="margin-top:6px" :style="custodyUnsigned ? 'color:var(--am)' : 'color:var(--gn)'">
+                                <AppIcon :name="custodyUnsigned ? 'alert' : 'check'" :size="13" />
+                                {{ custodyUnsigned ? t('trip.custodyUnsigned', { signed: money(custodySigned), issued: money(wallets.custody.issued) }) : t('trip.custodySigned', { amount: money(custodySigned) }) }}
+                            </div>
                             <div class="bal">{{ money(wallets.custody.balance) }}</div>
                             <div class="flow">
                                 <div><span>{{ t('trip.issued') }}</span><b>{{ money(wallets.custody.issued) }}</b></div>
@@ -422,7 +465,7 @@ const pendingCount = computed(() => props.transfers.filter((x) => x.status === '
                         <div><span>{{ t('trip.profitPerKm') }}</span><b class="num">{{ num(figures.profit_per_km, 2) }}</b></div>
                         </template>
                         <template v-if="can('trips.see_profit')">
-                        <div><span>{{ t('trip.gaShare') }}</span><b class="num">{{ trip.is_hired && !figures.ga_parts.length && figures.ga_rate === 0 ? '0' : !figures.ga_known ? '—' : money(figures.ga_share) }}</b>
+                        <div class="ck" style="cursor:pointer" :title="t('trip.gaDetailTip')" @click="openModal('ga')"><span>{{ t('trip.gaShare') }} <AppIcon name="info" :size="12" /></span><b class="num">{{ trip.is_hired && !figures.ga_parts.length && figures.ga_rate === 0 ? '0' : !figures.ga_known ? '—' : money(figures.ga_share) }}</b>
                             <div class="xs mu">{{ trip.is_hired && figures.ga_rate === 0 ? t('trip.hiredNoGa') : !figures.ga_known ? t('trip.noGa') : figures.ga_parts.length ? '' : t('trip.gaCalc', { km: num(trip.km), rate: num(figures.ga_rate, 2) }) }}</div>
                             <div v-for="p in figures.ga_parts" :key="p.month" class="xs mu">
                                 {{ p.month }} · {{ t('trip.gaPart', { km: num(p.km), rate: p.rate == null ? '—' : num(p.rate, 2) }) }}
@@ -490,10 +533,22 @@ const pendingCount = computed(() => props.transfers.filter((x) => x.status === '
             </template>
         </Modal>
 
+<Modal :show="modal === 'step'" :title="t('trip.next.' + stepForm.step)" @close="close">
+            <form id="step-form" @submit.prevent="stepForm.post(route('office.trips.step', trip.id), done)">
+                <p v-if="stepForm.step === 'loading'" class="xs mu" style="margin:10px 0 0">{{ t('trip.plannedLoading', { when: when(trip.loading_at) }) }}</p>
+                <Field :label="t('trip.stepWhen')" :hint="t('trip.stepWhenHint')" :error="stepForm.errors.at"><input v-model="stepForm.at" type="datetime-local" dir="ltr" required></Field>
+            </form>
+            <template #footer>
+                <button type="button" class="btn btn-ln" @click="close">{{ t('common.cancel') }}</button>
+                <button type="submit" form="step-form" class="btn btn-cu" :disabled="stepForm.processing"><AppIcon name="check" /> {{ t('trip.next.' + stepForm.step) }}</button>
+            </template>
+        </Modal>
+
         <Modal :show="modal === 'deliver'" :title="t('trip.deliverTitle')" @close="close">
             <form id="deliver-form" @submit.prevent="deliverForm.post(route('office.trips.deliver', trip.id), { ...done, forceFormData: true })">
                 <Field :label="t('trip.podPhoto')" :error="deliverForm.errors.pod"><input type="file" accept="image/*" capture="environment" required @change="deliverForm.pod = $event.target.files[0]"></Field>
                 <Field :label="t('trip.receiver')" :error="deliverForm.errors.receiver"><input v-model="deliverForm.receiver" maxlength="120"></Field>
+                <Field :label="t('trip.stepWhen')" :error="deliverForm.errors.at"><input v-model="deliverForm.at" type="datetime-local" dir="ltr" required></Field>
             </form>
             <template #footer>
                 <button type="button" class="btn btn-ln" @click="close">{{ t('common.cancel') }}</button>
@@ -612,6 +667,64 @@ const pendingCount = computed(() => props.transfers.filter((x) => x.status === '
             <template #footer>
                 <button type="button" class="btn btn-ln" @click="close">{{ t('common.cancel') }}</button>
                 <button type="submit" form="reject-form" class="btn btn-rd" :disabled="decisionForm.processing">{{ t('trip.reject') }}</button>
+            </template>
+        </Modal>
+
+        <Modal :show="modal === 'ga'" :title="t('trip.gaDetailTitle')" @close="close">
+            <p class="sm" style="margin:10px 0 0">{{ t('trip.gaDetailHow') }}</p>
+            <div v-if="figures.ga_parts.length" class="tw" style="margin-top:12px">
+                <table>
+                    <thead><tr><th>{{ t('trip.gaCols.month') }}</th><th class="e">{{ t('trip.gaCols.km') }}</th><th class="e">{{ t('trip.gaCols.rate') }}</th><th class="e">{{ t('trip.gaCols.share') }}</th><th>{{ t('trip.gaCols.state') }}</th></tr></thead>
+                    <tbody>
+                        <tr v-for="p in figures.ga_parts" :key="p.month">
+                            <td class="num">{{ p.month }}</td>
+                            <td class="e num">{{ num(p.km) }}</td>
+                            <td class="e num">{{ p.rate == null ? '—' : num(p.rate, 2) }}</td>
+                            <td class="e"><b class="num">{{ p.ga_share == null ? '—' : money(p.ga_share) }}</b></td>
+                            <td><span class="bd nodot" :class="p.closed ? 'gn' : 'pl'">{{ p.closed ? t('trip.monthClosed') : t('trip.monthOpen') }}</span></td>
+                        </tr>
+                        <tr><td colspan="3"><b>{{ t('common.total') }}</b></td><td class="e"><b class="num">{{ figures.ga_known ? money(figures.ga_share) : '—' }}</b></td><td></td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <p v-else class="sm mu" style="margin:12px 0 0">{{ trip.is_hired && figures.ga_rate === 0 ? t('trip.hiredNoGa') : figures.ga_known ? t('trip.gaCalc', { km: num(trip.km), rate: num(figures.ga_rate, 2) }) : t('trip.noGa') }}</p>
+            <div class="note am" style="margin-top:12px"><AppIcon name="info" /><div>{{ t('trip.gaDetailEstimate') }}</div></div>
+            <div class="note" style="margin-top:8px"><AppIcon name="check" /><div>{{ t('trip.gaDetailClosed') }}</div></div>
+            <template #footer>
+                <Link v-if="can('month_close.view')" :href="route('office.close.index')" class="btn btn-ln">{{ t('trip.gaOpenClose') }}</Link>
+                <button type="button" class="btn btn-cu" @click="close">{{ t('common.close') }}</button>
+            </template>
+        </Modal>
+
+        <Modal :show="modal === 'crew'" :title="editingCrew ? t('trip.editCrew') : t('trip.addCrew')" @close="close">
+            <form id="crew-form" @submit.prevent="saveCrew">
+                <p class="xs mu" style="margin:10px 0 0">{{ t('trip.crewHint') }}</p>
+                <div class="fgrid">
+                    <Field :label="t('trip.crewRole')" :error="crewForm.errors.role">
+                        <select v-model="crewForm.role"><option v-for="r in ['second_driver', 'assistant']" :key="r" :value="r">{{ t('trip.crewRoles.' + r) }}</option></select>
+                    </Field>
+                    <Field :label="t('trip.crewName')" :error="crewForm.errors.name"><input v-model="crewForm.name" maxlength="80" required></Field>
+                    <Field :label="t('trip.crewAllowance')" :hint="t('common.optional')" :error="crewForm.errors.allowance"><input v-model="crewForm.allowance" type="number" min="0" step="any" dir="ltr"></Field>
+                </div>
+                <Field :label="t('trip.note')" :error="crewForm.errors.note"><input v-model="crewForm.note" maxlength="250"></Field>
+            </form>
+            <template #footer>
+                <button type="button" class="btn btn-ln" @click="close">{{ t('common.cancel') }}</button>
+                <button type="submit" form="crew-form" class="btn btn-cu" :disabled="crewForm.processing"><AppIcon name="check" /> {{ t('common.save') }}</button>
+            </template>
+        </Modal>
+
+        <ConfirmDialog :show="modal === 'removeCrew'" :title="t('common.delete')" :message="t('trip.removeCrew')" danger :confirm-label="t('common.delete')" @confirm="removeCrew" @cancel="close" />
+
+        <Modal :show="modal === 'confirmFor'" :title="t('trip.confirmForClientTitle')" @close="close">
+            <form id="confirm-for-form" @submit.prevent="confirmForm.post(route('office.trips.collections.confirm-for-client', [trip.id, target.id]), done)">
+                <p v-if="target" class="sm" style="margin:10px 0 0"><b class="num">{{ money(target.amount) }}</b></p>
+                <p class="xs mu" style="margin:6px 0 0">{{ t('trip.confirmForClientHint') }}</p>
+                <Field :label="t('trip.confirmForClientWhy')" :error="confirmForm.errors.note"><input v-model="confirmForm.note" maxlength="200" required></Field>
+            </form>
+            <template #footer>
+                <button type="button" class="btn btn-ln" @click="close">{{ t('common.cancel') }}</button>
+                <button type="submit" form="confirm-for-form" class="btn btn-cu" :disabled="confirmForm.processing"><AppIcon name="check" /> {{ t('trip.confirmForClient') }}</button>
             </template>
         </Modal>
 

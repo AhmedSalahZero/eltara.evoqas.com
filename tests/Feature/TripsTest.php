@@ -127,6 +127,58 @@ class TripsTest extends TestCase
         $this->assertEquals($this->cats['hire'], $fee->expense_category_id);
     }
 
+    public function test_loading_cannot_start_long_before_the_planned_time_unless_the_admin_does_it(): void
+    {
+        $this->setUpFleet();
+        $this->actingAs($this->admin, 'web')->post('/office/trips', $this->tripData(['loading_at' => now()->addDays(3)->format('Y-m-d H:i')]));
+        $trip = Trip::query()->firstOrFail();
+        $url = "/office/trips/{$trip->id}";
+        $this->post("{$url}/step", ['step' => 'accept'])->assertSessionHas('success');
+        $this->post("{$url}/custody", ['amount' => 3000])->assertSessionHas('success');
+        $this->travel(10)->seconds();
+
+        // Another office user cannot start loading three days early.
+        $clerk = $this->officeUser($this->co, ['trips.view', 'trips.edit']);
+        $this->actingAs($clerk, 'web')->post("{$url}/step", ['step' => 'loading'])->assertSessionHas('error');
+        $this->assertSame('accepted', $trip->fresh()->status);
+
+        // A date in the future is refused for everyone.
+        $this->actingAs($this->admin, 'web')->post("{$url}/step", ['step' => 'loading', 'at' => now()->addDay()->format('Y-m-d\\TH:i')])->assertSessionHas('error');
+        $this->assertSame('accepted', $trip->fresh()->status);
+
+        // The company admin may start early (the truck is ready).
+        $this->travel(10)->seconds();
+        $this->post("{$url}/step", ['step' => 'loading'])->assertSessionHas('success');
+        $this->assertSame('loading', $trip->fresh()->status);
+    }
+
+    public function test_a_step_cannot_be_dated_before_the_step_that_came_before_it(): void
+    {
+        $this->setUpFleet();
+        $this->actingAs($this->admin, 'web')->post('/office/trips', $this->tripData());
+        $trip = Trip::query()->firstOrFail();
+        $url = "/office/trips/{$trip->id}";
+        $this->post("{$url}/step", ['step' => 'accept'])->assertSessionHas('success');
+        $this->post("{$url}/custody", ['amount' => 3000])->assertSessionHas('success');
+        $this->travel(10)->seconds();
+
+        $this->post("{$url}/step", ['step' => 'loading', 'at' => now()->subDays(2)->format('Y-m-d\\TH:i')])->assertSessionHas('error');
+        $this->assertSame('accepted', $trip->fresh()->status);
+    }
+
+    public function test_a_load_heavier_than_the_truck_can_carry_is_refused(): void
+    {
+        $this->setUpFleet();
+        $this->truck->update(['capacity_tons' => 25]);
+        $this->actingAs($this->admin, 'web');
+
+        $this->post('/office/trips', $this->tripData(['weight_tons' => 28.5]))->assertSessionHas('error');
+        $this->assertSame(0, Trip::query()->count());
+
+        $this->post('/office/trips', $this->tripData(['weight_tons' => 24]))->assertSessionHasNoErrors();
+        $this->assertSame(1, Trip::query()->count());
+    }
+
     public function test_the_trip_moves_one_step_at_a_time_and_delivery_needs_its_photo(): void
     {
         Storage::fake('trip_files');

@@ -42,7 +42,7 @@ const rememberPlace = (place) => {
 
 const open = ref(false);
 const editing = ref(null);
-const form = useForm({ origin_ar: '', origin_en: '', destination_ar: '', destination_en: '', weight_tons: '', km_round_trip: '', usual_hours: '', notes: '', is_active: true, budgets: {} });
+const form = useForm({ origin_ar: '', origin_en: '', destination_ar: '', destination_en: '', weight_tons: '', km_round_trip: '', usual_hours: '', wait_hours: '', notes: '', is_active: true, budgets: {} });
 
 function openRoute(r = null) {
     editing.value = r;
@@ -50,7 +50,7 @@ function openRoute(r = null) {
     for (const c of props.categories) budgets[c.id] = r?.budgets?.[c.id] ?? '';
     form.defaults({
         origin_ar: r?.origin_ar ?? '', origin_en: r?.origin_en ?? '', destination_ar: r?.destination_ar ?? '', destination_en: r?.destination_en ?? '',
-        weight_tons: r?.weight_tons ?? '', km_round_trip: r?.km_round_trip ?? '', usual_hours: r?.usual_hours ?? '', notes: r?.notes ?? '', is_active: r?.is_active ?? true, budgets,
+        weight_tons: r?.weight_tons ?? '', km_round_trip: r?.km_round_trip ?? '', usual_hours: r?.usual_hours ?? '', wait_hours: r?.wait_hours ?? '', notes: r?.notes ?? '', is_active: r?.is_active ?? true, budgets,
     });
     form.reset();
     form.clearErrors();
@@ -94,17 +94,18 @@ const visibleCategories = computed(() => props.categories.filter((c) => c.is_act
                 <thead>
                     <tr>
                         <th>{{ t('rt.route') }}</th><th class="e">{{ t('rt.km') }}</th><th class="e">{{ t('rt.hours') }}</th><th class="e">{{ t('rt.standard') }}</th>
-                        <th class="e">{{ t('rt.cash') }}</th><th class="e">{{ t('rt.custody') }}</th><th class="e">{{ t('rt.perKm') }}</th><th class="e">{{ t('rt.customers') }}</th>
+                        <th class="e">{{ t('rt.cash') }}</th><th class="e" :title="t('rt.bufferTip', { buffer: num(buffer, 0) })">{{ t('rt.buffer') }}</th><th class="e">{{ t('rt.custody') }}</th><th class="e">{{ t('rt.perKm') }}</th><th class="e">{{ t('rt.customers') }}</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-if="!routes.length"><td colspan="8"><div class="empty" style="border:0">{{ filters.search ? t('common.noResults') : t('rt.none') }}</div></td></tr>
+                    <tr v-if="!routes.length"><td colspan="9"><div class="empty" style="border:0">{{ filters.search ? t('common.noResults') : t('rt.none') }}</div></td></tr>
                     <tr v-for="r in routes" :key="r.id" :class="{ ck: can('customers.edit') }" :style="r.is_active ? '' : 'opacity:.55'" @click="can('customers.edit') && openRoute(r)">
                         <td><b class="route"><AppIcon name="route" />{{ r.name }}</b> <span v-if="!r.is_active" class="bd pl nodot">{{ t('rt.hidden') }}</span></td>
                         <td class="e num">{{ num(r.km_round_trip) }}</td>
-                        <td class="e num">{{ r.usual_hours ? num(r.usual_hours, 0) : '—' }}</td>
+                        <td class="e num">{{ r.usual_hours ? num(r.usual_hours, 0) : '—' }}<span v-if="r.wait_hours" class="xs mu"> + {{ num(r.wait_hours, 0) }}</span></td>
                         <td class="e"><b class="num">{{ money(r.standard) }}</b></td>
                         <td class="e num">{{ money(r.cash) }}</td>
+                        <td class="e num mu" :title="t('rt.bufferTip', { buffer: num(buffer, 0) })">+{{ money(Math.max(0, (r.custody || 0) - (r.cash || 0))) }}</td>
                         <td class="e num" style="color:var(--bl)">{{ money(r.custody) }}</td>
                         <td class="e num">{{ r.per_km == null ? '—' : num(r.per_km, 2) }}</td>
                         <td class="e num">{{ r.customers }}</td>
@@ -127,7 +128,8 @@ const visibleCategories = computed(() => props.categories.filter((c) => c.is_act
                                 :add-url="route('office.route_places.store')" :can-add="can('customers.create')" :error="form.errors.destination_en" @added="rememberPlace" />
                     <Field :label="t('rt.weight')" :hint="t('rt.weightHint')" :error="form.errors.weight_tons"><input v-model="form.weight_tons" type="number" min="0" step="any" dir="ltr" required></Field>
                     <Field :label="t('rt.km')" :error="form.errors.km_round_trip"><input v-model="form.km_round_trip" type="number" min="1" dir="ltr" required></Field>
-                    <Field :label="t('rt.hours')" :error="form.errors.usual_hours"><input v-model="form.usual_hours" type="number" min="0" step="0.5" dir="ltr"></Field>
+                    <Field :label="t('rt.hours')" :hint="t('rt.hoursHint')" :error="form.errors.usual_hours"><input v-model="form.usual_hours" type="number" min="0" step="0.5" dir="ltr"></Field>
+                    <Field :label="t('rt.waitHours')" :hint="t('rt.waitHoursHint')" :error="form.errors.wait_hours"><input v-model="form.wait_hours" type="number" min="0" step="0.5" dir="ltr"></Field>
                 </div>
 
                 <div class="sec" style="margin-top:16px">{{ t('rt.budget') }} <span class="xs mu">· {{ t('rt.budgetHint') }}</span></div>

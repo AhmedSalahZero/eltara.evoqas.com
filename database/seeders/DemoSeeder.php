@@ -25,7 +25,10 @@ use Illuminate\Database\Seeder;
 //
 //  Then MasterDataSeeder adds the Step 2 data (routes, customers,
 //  rate cards, drivers, vehicles), and TripSeeder the Step 3 demo
-//  trips (settled, on the road, waiting for approval and settlement).
+//  trips (settled, on the road, waiting for approval and settlement), and
+//  LatestFeaturesSeeder the newest features: maintenance and the workshop
+//  store, route driving + waiting hours, second driver / assistant on trips,
+//  and client cash confirmed by the office.
 //  Runs only on your computer (DatabaseSeeder). Safe to run again.
 // ══════════════════════════════════════════════════════════════════
 
@@ -102,6 +105,7 @@ class DemoSeeder extends Seeder
         $this->call(MasterDataSeeder::class);
         $this->call(TripSeeder::class);
         $this->call(Step6Seeder::class);
+        $this->call(LatestFeaturesSeeder::class);
 
         $this->command?->info('Demo company "Nile Heavy Transport" is ready (see docs/SETUP.md for the sign-ins).');
     }

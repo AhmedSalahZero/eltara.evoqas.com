@@ -135,16 +135,15 @@ const profitColor = (v) => (v == null ? 'var(--mu)' : v < 0 ? 'var(--rd)' : 'var
                 </span>
             </div>
             <div v-if="!summary.lines.length" class="empty" style="border:0">{{ t('close.noLines') }}</div>
-            <div v-for="l in summary.lines" :key="l.id" class="kv">
-                <span>{{ l.label }}</span>
-                <b class="num">{{ money(l.amount) }}
-                    <template v-if="!locked() && can('month_close.create')">
-                        <button class="ib" :title="t('common.edit')" @click="openLine(l)"><AppIcon name="edit" /></button>
-                        <button class="ib" :title="t('common.delete')" @click="delLine = l"><AppIcon name="trash" /></button>
-                    </template>
-                </b>
+            <div v-for="l in summary.lines" :key="l.id" class="rowline">
+                <span class="lb">{{ l.label }}</span>
+                <b class="num amt">{{ money(l.amount) }}</b>
+                <span v-if="!locked() && can('month_close.create')" class="acts">
+                    <button class="ib" :title="t('common.edit')" @click="openLine(l)"><AppIcon name="edit" /></button>
+                    <button class="ib" :title="t('common.delete')" @click="delLine = l"><AppIcon name="trash" /></button>
+                </span>
             </div>
-            <div v-if="summary.lines.length" class="kv" style="font-weight:800"><span>{{ t('common.total') }}</span><b class="num">{{ money(summary.ga_total) }}</b></div>
+            <div v-if="summary.lines.length" class="rowline total"><span class="lb">{{ t('common.total') }}</span><b class="num amt">{{ money(summary.ga_total) }}</b></div>
             <p v-if="locked()" class="xs mu" style="margin:8px 0 0">{{ t('close.linesLocked') }}</p>
         </div>
 

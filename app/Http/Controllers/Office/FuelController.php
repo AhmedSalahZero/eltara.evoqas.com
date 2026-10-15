@@ -67,9 +67,19 @@ class FuelController extends Controller
     {
         $data = $this->validated($request, true);
 
-        return $this->attempt(function () use ($service, $data, $request) {
-            $service->record($data, $request->user('web'));
+        $entry = null;
+        $response = $this->attempt(function () use ($service, $data, $request, &$entry) {
+            $entry = $service->record($data, $request->user('web'));
         }, __('finance.ok.fuel_saved'));
+
+        // Go to the month the refuel belongs to (a fuel expense of last month is saved in last month),
+        // so the new line and the changed totals are on screen, and the "waiting" list is one shorter.
+        if ($entry && $entry->filled_at) {
+            return redirect()->route('office.fuel.index', ['month' => $entry->filled_at->format('Y-m'), 'tab' => 'refuels'])
+                ->with('success', __('finance.ok.fuel_saved_in', ['month' => $entry->filled_at->format('Y-m')]));
+        }
+
+        return $response;
     }
 
     public function update(Request $request, FuelEntry $entry, FuelService $service): RedirectResponse

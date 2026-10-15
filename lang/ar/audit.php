@@ -6,7 +6,7 @@ return [
     'areas' => [
         'auth' => 'بالحساب',
         'advance' => 'سلفة', 'client_request' => 'طلب عميل', 'client_user' => 'مستخدم عميل', 'collection' => 'تحصيل', 'company' => 'شركة',
-        'complaint' => 'شكوى', 'custody' => 'عهدة', 'customer' => 'عميل', 'driver' => 'سائق', 'expense' => 'مصروف', 'expense_category' => 'بند مصروف',
+        'crew' => 'طاقم الرحلة', 'complaint' => 'شكوى', 'custody' => 'عهدة', 'customer' => 'عميل', 'driver' => 'سائق', 'expense' => 'مصروف', 'expense_category' => 'بند مصروف',
         'fuel' => 'تموين وقود', 'ga' => 'بند مصروفات عامة', 'insurance_company' => 'شركة تأمين', 'invoice' => 'ربط فاتورة', 'maintenance' => 'صيانة', 'month' => 'شهر', 'permissions' => 'صلاحيات', 'rate_card' => 'قائمة أسعار', 'route_place' => 'مكان على مسار',
         'report' => 'تقرير', 'route' => 'مسار', 'settings' => 'إعدادات الشركة', 'stock' => 'مخزن الورشة', 'transfer' => 'تحويل محافظ', 'trip' => 'رحلة', 'user' => 'مستخدم', 'vehicle' => 'شاحنة',
         'vehicle_type' => 'نوع شاحنة', 'cargo_type' => 'نوع حمولة',
@@ -22,7 +22,7 @@ return [
         'loading' => 'بدء تحميل', 'departed' => 'انطلاق', 'delivered' => 'تسليم', 'confirmed' => 'تأكيد', 'resolved' => 'حل', 'custody' => 'صرف عهدة',
     ],
     'actors' => ['user' => 'مستخدم مكتب', 'driver' => 'سائق', 'client' => 'عميل', 'system' => 'النظام'],
-    'subjects' => ['Trip' => 'رحلة', 'Vehicle' => 'شاحنة', 'Driver' => 'سائق', 'Customer' => 'عميل', 'User' => 'مستخدم', 'WalletTransfer' => 'تحويل', 'MonthClose' => 'إقفال شهر', 'Invoice' => 'فاتورة', 'FuelEntry' => 'تموين', 'DriverAdvance' => 'سلفة', 'MaintenanceJob' => 'صيانة'],
+    'subjects' => ['Trip' => 'رحلة', 'Vehicle' => 'شاحنة', 'Driver' => 'سائق', 'Customer' => 'عميل', 'User' => 'مستخدم', 'WalletTransfer' => 'تحويل', 'MonthClose' => 'إقفال شهر', 'Invoice' => 'فاتورة', 'FuelEntry' => 'تموين', 'DriverAdvance' => 'سلفة', 'MaintenanceJob' => 'صيانة', 'TripCrew' => 'فرد طاقم'],
     'columns' => ['when' => 'الوقت', 'who' => 'من', 'action' => 'الإجراء', 'subject' => 'على', 'details' => 'التفاصيل', 'ip' => 'عنوان IP'],
     'title' => 'سجل المراجعة',
 ];

@@ -18,6 +18,7 @@ use App\Services\Maintenance\MaintenanceShare;
 use App\Services\Notifier;
 use App\Support\Audit;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 // ══════════════════════════════════════════════════════════════════
@@ -54,6 +55,7 @@ final class TripService
         private readonly WalletLedger $ledger,
         private readonly ExpenseService $expenses,
         private readonly MaintenanceShare $maintenanceShare,
+        private readonly CrewService $crew,
     ) {}
 
     // ── Create & edit ──────────────────────────────────────────────
@@ -71,6 +73,7 @@ final class TripService
         $driverId = $data['driver_id'] ?? ($hired ? null : $vehicle->driver_id);
 
         $this->assertBookable($vehicle, $driverId ? Driver::query()->findOrFail($driverId) : null, null);
+        $this->assertCapacity($vehicle, $data['weight_tons'] ?? null);
 
         if (! $hired && ! $driverId) {
             throw TripRuleException::because('trips.needs_driver');
@@ -101,7 +104,9 @@ final class TripService
                 'weight_tons'         => $data['weight_tons'] ?? null,
                 'notes'               => $data['notes'] ?? null,
                 'km'                  => $route->km_round_trip,
-                'planned_hours'       => $route->usual_hours,
+                // Driving hours (round trip) and the whole time the truck is busy: driving + waiting to load / unload.
+                'road_hours'          => $route->usual_hours,
+                'planned_hours'       => $route->usual_hours === null ? null : round((float) $route->usual_hours + (float) $route->wait_hours, 1),
                 'freight_price'       => $price,
                 'price_source'        => $source,
                 'client_pays_cash'    => (bool) ($data['client_pays_cash'] ?? false),
@@ -185,6 +190,11 @@ final class TripService
                 $trip->price_source = 'manual';
                 $this->event($trip, 'price_changed', Actor::user($user), null, ['from' => $old, 'to' => $trip->freight_price]);
                 Audit::record('trip.price_changed', $trip, ['before' => ['price' => $old], 'after' => ['price' => $trip->freight_price]]);
+            }
+
+            // A new truck or a heavier load must still fit the truck.
+            if ($trip->isDirty('vehicle_id') || $trip->isDirty('weight_tons')) {
+                $this->assertCapacity(Vehicle::query()->findOrFail($trip->vehicle_id), $trip->weight_tons);
             }
 
             $changes = $trip->getDirty();
@@ -331,7 +341,11 @@ final class TripService
             throw TripRuleException::because('trips.custody_first');
         }
 
-        $this->step($trip, 'loading', 'loading_started_at', 'loading', $actor, $lat, $lng, null, $at);
+        DB::transaction(function () use ($trip, $actor, $lat, $lng, $at) {
+            $this->step($trip, 'loading', 'loading_started_at', 'loading', $actor, $lat, $lng, null, $at);
+            // The main driver now holds the custody: the crew's allowances are paid out of it.
+            $this->crew->postDue($trip, $actor);
+        });
     }
 
     public function depart(Trip $trip, Actor $actor, ?float $lat = null, ?float $lng = null, ?\DateTimeInterface $at = null): void
@@ -373,9 +387,17 @@ final class TripService
         }
 
         DB::transaction(function () use ($trip, $reason, $user) {
+            // Maintenance cost carried by this trip goes back to the truck's pool first
+            // (a cancelled trip's expenses cannot be touched), then is shared again.
+            $this->maintenanceShare->releaseTrip($trip, $user);
+
             $trip->forceFill(['status' => 'cancelled', 'cancelled_at' => now(), 'cancel_reason' => mb_substr($reason, 0, 250)])->save();
             $this->event($trip, 'cancelled', Actor::user($user), $reason);
             Audit::record('trip.cancelled', $trip, ['after' => ['reason' => $reason]]);
+
+            if ($vehicle = Vehicle::query()->find($trip->vehicle_id)) {
+                $this->maintenanceShare->apply($vehicle, $user);
+            }
         });
     }
 
@@ -394,6 +416,20 @@ final class TripService
             'meta'        => $meta,
             ...$actor->columns(),
         ]);
+    }
+
+    /** A truck cannot carry more than its capacity (when the truck's capacity is known). */
+    private function assertCapacity(Vehicle $vehicle, mixed $weight): void
+    {
+        if ($weight === null || $weight === '' || ! is_numeric($weight) || ! $vehicle->capacity_tons) {
+            return;
+        }
+
+        if ((float) $weight > (float) $vehicle->capacity_tons + 0.0001) {
+            throw TripRuleException::because('trips.over_capacity', [
+                'plate' => $vehicle->plateText(), 'weight' => rtrim(rtrim(number_format((float) $weight, 2), '0'), '.'), 'capacity' => rtrim(rtrim(number_format((float) $vehicle->capacity_tons, 2), '0'), '.'),
+            ]);
+        }
     }
 
     /**
@@ -449,8 +485,44 @@ final class TripService
         return [$typed, 'manual'];
     }
 
+    /**
+     * The date and time of a step typed in the office must make sense:
+     *  · not in the future (a few minutes of clock difference are allowed);
+     *  · not before the step that comes before it (loading cannot be earlier than accepted …);
+     *  · loading cannot start much before the planned loading time. The company admin may
+     *    (a truck that is ready early); anyone else first changes the planned time on the trip.
+     * The driver's phone records the real moment itself (it may be offline), so it is not held to this.
+     */
+    private function assertStepTime(Trip $trip, string $status, Actor $actor, ?\DateTimeInterface $at): void
+    {
+        if ($actor->user === null) {
+            return;
+        }
+
+        $now = now();
+        $when = $at ? Carbon::instance($at) : $now;
+
+        if ($at && $when->greaterThan($now->copy()->addMinutes(10))) {
+            throw TripRuleException::because('trips.step_in_future');
+        }
+
+        $previous = ['loading' => 'accepted_at', 'on_road' => 'loading_started_at', 'delivered' => 'departed_at'][$status] ?? null;
+        if ($at && $previous && $trip->{$previous} && $when->lt($trip->{$previous})) {
+            throw TripRuleException::because('trips.step_before_previous', ['time' => $trip->{$previous}->format('Y-m-d H:i')]);
+        }
+
+        if ($status === 'loading' && $trip->loading_at) {
+            $hours = (int) config('eltara.early_start_hours', 12);
+            if ($when->lt($trip->loading_at->copy()->subHours($hours)) && ! $actor->user->isCompanyAdmin()) {
+                throw TripRuleException::because('trips.too_early', ['at' => $trip->loading_at->format('Y-m-d H:i'), 'hours' => $hours]);
+            }
+        }
+    }
+
     private function step(Trip $trip, string $status, string $timeColumn, string $eventType, Actor $actor, ?float $lat, ?float $lng, ?string $note = null, ?\DateTimeInterface $at = null): void
     {
+        $this->assertStepTime($trip, $status, $actor, $at);
+
         DB::transaction(function () use ($trip, $status, $timeColumn, $eventType, $actor, $lat, $lng, $note, $at) {
             $trip->forceFill(['status' => $status, $timeColumn => $at ?? now()])->save();
             $this->event($trip, $eventType, $actor, $note, null, $lat, $lng, $at);

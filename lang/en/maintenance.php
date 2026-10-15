@@ -17,10 +17,12 @@ return [
     'note_required' => 'A breakdown, and any job marked Other, needs a note saying what happened.',
     'completed_required' => 'Type when the job was finished.',
     'completed_before_open' => 'The job cannot be finished before it was opened.',
+    'completed_in_future' => 'The finish date cannot be in the future.',
     'cost_required' => 'Type the cost of a finished job. Use 0 if there was no charge.',
     'interval_required' => 'A finished periodic service needs a kilometre interval, a day interval, or both.',
     'open_blocks_available' => 'This truck has an open maintenance job, so it stays in maintenance until that job is finished or deleted.',
     'own_needs_workshop' => 'This company has no workshop of its own. Record the job as an outside workshop.',
     'lines_required' => 'A company-workshop job needs at least one item from the store.',
+    'warn_trips' => 'Saved. Truck :plate is now in maintenance but still has trips booked: :trips. Move them to another truck or reschedule.',
     'trip_share' => 'Maintenance carried by this truck',
 ];

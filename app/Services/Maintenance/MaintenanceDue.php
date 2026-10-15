@@ -16,6 +16,9 @@ namespace App\Services\Maintenance;
 //  A job with neither interval has nothing to judge.
 //  When several completed jobs exist for the same truck and item,
 //  only the latest one (by completion, then by id) counts.
+//  Oil, tyres and filters are one item each. "Other" is many different
+//  things (brakes, gearbox …), so for it the note says which item it is:
+//  a brakes service never hides a gearbox one.
 //
 //  Pure: no database (tests/Unit/MaintenanceDueTest.php).
 // ══════════════════════════════════════════════════════════════════
@@ -29,7 +32,7 @@ final class MaintenanceDue
     /**
      * The latest completed periodic job for each truck and item.
      *
-     * @param  list<array{id?:int, vehicle_id:int, category:string, kind?:string, status?:string, completed_at?:?string}>  $jobs
+     * @param  list<array{id?:int, vehicle_id:int, category:string, note?:?string, kind?:string, status?:string, completed_at?:?string}>  $jobs
      * @return list<array<string,mixed>>
      */
     public static function latest(array $jobs): array
@@ -41,7 +44,7 @@ final class MaintenanceDue
                 continue;
             }
 
-            $key = $job['vehicle_id'].'|'.$job['category'];
+            $key = $job['vehicle_id'].'|'.$job['category'].'|'.self::itemName($job);
             $current = $best[$key] ?? null;
 
             if ($current === null || self::isNewer($job, $current)) {
@@ -88,6 +91,16 @@ final class MaintenanceDue
         }
 
         return ['km' => $km, 'on' => $on];
+    }
+
+    /** For "other" the note names the item (same words, any case or spacing, are the same item). */
+    private static function itemName(array $job): string
+    {
+        if (($job['category'] ?? '') !== 'other') {
+            return '';
+        }
+
+        return mb_strtolower(trim((string) preg_replace('/\s+/u', ' ', (string) ($job['note'] ?? ''))));
     }
 
     /** @param array{completed_at?:?string, id?:int} $job */

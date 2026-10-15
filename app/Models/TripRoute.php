@@ -26,12 +26,12 @@ class TripRoute extends Model
 
     protected $fillable = [
         'company_id', 'origin_ar', 'origin_en', 'destination_ar', 'destination_en',
-        'weight_tons', 'km_round_trip', 'usual_hours', 'notes', 'is_active', 'created_by',
+        'weight_tons', 'km_round_trip', 'usual_hours', 'wait_hours', 'notes', 'is_active', 'created_by',
     ];
 
     protected function casts(): array
     {
-        return ['km_round_trip' => 'integer', 'usual_hours' => 'float', 'weight_tons' => 'float', 'is_active' => 'boolean'];
+        return ['km_round_trip' => 'integer', 'usual_hours' => 'float', 'wait_hours' => 'float', 'weight_tons' => 'float', 'is_active' => 'boolean'];
     }
 
     public function displayName(?string $locale = null): string

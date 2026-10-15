@@ -13,6 +13,7 @@
 return [
     'ok' => [
         'fuel_saved'        => 'The refuel is saved.',
+        'fuel_saved_in'     => 'The refuel is saved in :month. The litres are now counted and the trip fuel line is complete.',
         'fuel_deleted'      => 'The refuel is deleted.',
         'advance_saved'     => 'The advance is saved.',
         'repayment_saved'   => 'The repayment is recorded.',

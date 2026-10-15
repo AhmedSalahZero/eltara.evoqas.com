@@ -84,12 +84,13 @@ final class MaintenanceAnalysis
         $jobs = $this->base($companyId, $vehicleId)
             ->where('kind', 'periodic')->where('status', 'done')
             ->orderByDesc('completed_at')->orderByDesc('id')
-            ->get(['id', 'vehicle_id', 'category', 'kind', 'status', 'completed_at']);
+            ->get(['id', 'vehicle_id', 'category', 'note', 'kind', 'status', 'completed_at']);
 
         $latest = MaintenanceDue::latest($jobs->map(fn (MaintenanceJob $j) => [
             'id' => $j->id,
             'vehicle_id' => $j->vehicle_id,
             'category' => $j->category,
+            'note' => $j->note,
             'kind' => $j->kind,
             'status' => $j->status,
             'completed_at' => $j->completed_at?->format('Y-m-d H:i:s') ?? '',

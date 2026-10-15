@@ -9,6 +9,7 @@ use App\Models\MaintenanceJob;
 use App\Models\StockBalance;
 use App\Models\StockItem;
 use App\Models\Store;
+use App\Models\Trip;
 use App\Models\Vehicle;
 use App\Services\Closing\MonthCloseService;
 use App\Services\Maintenance\MaintenanceAnalysis;
@@ -27,8 +28,9 @@ use Inertia\Response;
 //    tiles   jobs still open, services due or overdue, this month's
 //            jobs and their cost
 //    tabs    Open · Due · Log
-//  An open job holds the truck (it cannot be booked). The cost is
-//  not a trip expense and not a G&A line.
+//  An open job holds the truck (it cannot be booked). A finished job's
+//  cost is an indirect overhead of the truck, carried by its later trips
+//  by kilometre (MaintenanceShare) — not typed again as a G&A line.
 //  Permissions: maintenance.view / create / edit / delete.
 // ══════════════════════════════════════════════════════════════════
 
@@ -76,18 +78,24 @@ class MaintenanceController extends Controller
     {
         $data = $this->validated($request);
 
-        return $this->attempt(function () use ($service, $data, $request) {
-            $service->record($data, $request->user('web'));
+        $job = null;
+        $response = $this->attempt(function () use ($service, $data, $request, &$job) {
+            $job = $service->record($data, $request->user('web'));
         }, __('maintenance.ok.saved'));
+
+        return $this->withTripWarning($response, $job);
     }
 
     public function update(Request $request, MaintenanceJob $job, MaintenanceService $service): RedirectResponse
     {
         $data = $this->validated($request);
 
-        return $this->attempt(function () use ($service, $job, $data, $request) {
-            $service->update($job, $data, $request->user('web'));
+        $saved = null;
+        $response = $this->attempt(function () use ($service, $job, $data, $request, &$saved) {
+            $saved = $service->update($job, $data, $request->user('web'));
         }, __('maintenance.ok.saved'));
+
+        return $this->withTripWarning($response, $saved);
     }
 
     public function destroy(Request $request, MaintenanceJob $job, MaintenanceService $service): RedirectResponse
@@ -95,6 +103,30 @@ class MaintenanceController extends Controller
         $service->delete($job, $request->user('web'));
 
         return back()->with('success', __('maintenance.ok.deleted'));
+    }
+
+    /**
+     * An open job holds the truck, but trips already booked on it are left alone.
+     * Say so, with their numbers, so the office can move them to another truck.
+     */
+    private function withTripWarning(RedirectResponse $response, ?MaintenanceJob $job): RedirectResponse
+    {
+        if (! $job || $job->status !== 'open') {
+            return $response;
+        }
+
+        $trips = Trip::query()
+            ->where('vehicle_id', $job->vehicle_id)
+            ->whereIn('status', ['planned', 'accepted', 'loading'])
+            ->orderBy('loading_at')->orderBy('id')
+            ->pluck('number');
+        if ($trips->isEmpty()) {
+            return $response;
+        }
+
+        $plate = Vehicle::query()->find($job->vehicle_id)?->plateText() ?? '';
+
+        return $response->with('warning', __('maintenance.warn_trips', ['plate' => $plate, 'trips' => $trips->implode(', ')]));
     }
 
     private function validated(Request $request): array
@@ -107,7 +139,7 @@ class MaintenanceController extends Controller
             'category' => ['required', Rule::in(MaintenanceJob::CATEGORIES)],
             'status' => ['required', Rule::in(MaintenanceJob::STATUSES)],
             'opened_at' => ['required', 'date', 'before_or_equal:'.now()->addDay()->toDateTimeString()],
-            'completed_at' => ['nullable', 'date'],
+            'completed_at' => ['nullable', 'date', 'before_or_equal:'.now()->addDay()->toDateTimeString()],
             'odometer_km' => ['nullable', 'integer', 'min:0', 'max:9999999'],
             'cost' => ['nullable', 'numeric', 'min:0', 'max:10000000'],
             'workshop' => ['nullable', 'string', 'max:120'],

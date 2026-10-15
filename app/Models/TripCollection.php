@@ -19,6 +19,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 //    awaiting_driver  the client recorded, the driver not yet
 //    disputed         one side disputed, management has not resolved
 //    cancelled        management resolved the dispute: not received
+//  A client with no portal link cannot confirm. Someone with authority may
+//  confirm for him (CollectionService::confirmForClient): it is marked with
+//  who did it and why (client_confirmed_for_by / client_confirm_note).
 //
 //  counts(): whether the amount is in the driver's collections
 //  balance — the driver has confirmed holding it and it is not in
@@ -34,7 +37,7 @@ class TripCollection extends Model
     protected $fillable = [
         'company_id', 'trip_id', 'driver_id', 'customer_id', 'amount', 'received_at', 'recorded_by', 'note', 'receipt_path',
         'driver_confirmed_at', 'client_confirmed_at', 'disputed_at', 'disputed_by', 'dispute_note',
-        'resolved_at', 'resolved_by', 'resolution', 'created_by',
+        'resolved_at', 'resolved_by', 'resolution', 'client_confirmed_for_by', 'client_confirm_note', 'created_by',
     ];
 
     protected function casts(): array
@@ -47,6 +50,12 @@ class TripCollection extends Model
             'disputed_at'         => 'datetime',
             'resolved_at'         => 'datetime',
         ];
+    }
+
+    /** The client side was confirmed by the office on his behalf, not by the client. */
+    public function confirmedForClient(): bool
+    {
+        return $this->client_confirmed_for_by !== null;
     }
 
     public function isOpenDispute(): bool

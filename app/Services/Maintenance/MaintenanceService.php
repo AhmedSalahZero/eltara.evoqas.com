@@ -5,6 +5,7 @@ namespace App\Services\Maintenance;
 use App\Models\CompanySetting;
 use App\Models\MaintenanceJob;
 use App\Models\MaintenanceJobLine;
+use App\Models\StockMove;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Services\Stock\StockService;
@@ -71,9 +72,22 @@ final class MaintenanceService
             $wasDone = $job->status === 'done';
             $before = $this->view($job, $job->vehicle()->first());
 
+            // A job that drew parts from the company workshop and is now recorded as an
+            // outside job must put those parts back first. Otherwise they stay issued to a
+            // job that no longer owns them, and the store loses stock for nothing.
+            if ($job->source === 'own' && $this->source($data, $job) !== 'own') {
+                $this->stock->reverseJob($job);
+                $this->shares->release($job, $user);
+            }
+
             $vehicle = $this->vehicle((int) ($data['vehicle_id'] ?? $job->vehicle_id));
             $job->fill(['vehicle_id' => $vehicle->id, ...$this->fields($data, $job)])->save();
             $this->syncLines($job, $data);
+
+            // Parts already issued follow the job to its new truck.
+            if ($previousVehicleId !== (int) $vehicle->id) {
+                StockMove::query()->where('maintenance_job_id', $job->id)->update(['vehicle_id' => $vehicle->id]);
+            }
 
             $this->afterWrite($job, $previousVehicleId, $wasOpen);
             $this->pool($job, $wasDone, $user);
@@ -241,6 +255,9 @@ final class MaintenanceService
             $completedAt = $this->moment($data['completed_at'] ?? null, 'maintenance.completed_required');
             if ($completedAt->lt($openedAt)) {
                 throw TripRuleException::because('maintenance.completed_before_open');
+            }
+            if ($completedAt->greaterThan(now()->addDay())) {
+                throw TripRuleException::because('maintenance.completed_in_future');
             }
             if ($source === 'external' && $cost === null) {
                 throw TripRuleException::because('maintenance.cost_required');

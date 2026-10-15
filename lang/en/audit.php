@@ -6,7 +6,7 @@ return [
     'areas' => [
         'auth' => 'Sign-in',
         'advance' => 'Advance', 'client_request' => 'Client request', 'client_user' => 'Client user', 'collection' => 'Collection', 'company' => 'Company',
-        'complaint' => 'Complaint', 'custody' => 'Custody', 'customer' => 'Customer', 'driver' => 'Driver', 'expense' => 'Expense', 'expense_category' => 'Expense category',
+        'crew' => 'Trip crew', 'complaint' => 'Complaint', 'custody' => 'Custody', 'customer' => 'Customer', 'driver' => 'Driver', 'expense' => 'Expense', 'expense_category' => 'Expense category',
         'fuel' => 'Fuel refuel', 'ga' => 'G&A line', 'insurance_company' => 'Insurance company', 'invoice' => 'Invoice link', 'maintenance' => 'Maintenance', 'month' => 'Month', 'permissions' => 'Permissions', 'rate_card' => 'Rate card', 'route_place' => 'Route place',
         'report' => 'Report', 'route' => 'Route', 'settings' => 'Company settings', 'stock' => 'Workshop store', 'transfer' => 'Wallet transfer', 'trip' => 'Trip', 'user' => 'User', 'vehicle' => 'Truck',
         'vehicle_type' => 'Truck type', 'cargo_type' => 'Cargo type',
@@ -22,7 +22,7 @@ return [
         'departed' => 'left for the road', 'delivered' => 'delivered', 'confirmed' => 'confirmed', 'resolved' => 'resolved', 'custody' => 'custody issued',
     ],
     'actors' => ['user' => 'Office user', 'driver' => 'Driver', 'client' => 'Client', 'system' => 'System'],
-    'subjects' => ['Trip' => 'Trip', 'Vehicle' => 'Truck', 'Driver' => 'Driver', 'Customer' => 'Customer', 'User' => 'User', 'WalletTransfer' => 'Transfer', 'MonthClose' => 'Month close', 'Invoice' => 'Invoice', 'FuelEntry' => 'Refuel', 'DriverAdvance' => 'Advance', 'MaintenanceJob' => 'Maintenance job'],
+    'subjects' => ['Trip' => 'Trip', 'Vehicle' => 'Truck', 'Driver' => 'Driver', 'Customer' => 'Customer', 'User' => 'User', 'WalletTransfer' => 'Transfer', 'MonthClose' => 'Month close', 'Invoice' => 'Invoice', 'FuelEntry' => 'Refuel', 'DriverAdvance' => 'Advance', 'MaintenanceJob' => 'Maintenance job', 'TripCrew' => 'Crew member'],
     'columns' => ['when' => 'When', 'who' => 'Who', 'action' => 'Action', 'subject' => 'On', 'details' => 'Details', 'ip' => 'IP address'],
     'title' => 'Audit log',
 ];

@@ -45,7 +45,7 @@ class WalletController extends Controller
         $review = WalletTransfer::query()->where('status', 'auto')->whereNull('reviewed_at');
         $toSettle = Trip::query()->where('status', 'delivered');
 
-        $load = fn ($q) => $q->with(['trip:id,number,trip_route_id,status', 'trip.route:id,origin_ar,origin_en,destination_ar,destination_en', 'driver:id,name', 'decider:id,name'])
+        $load = fn ($q) => $q->with(['trip:id,number,trip_route_id,status', 'trip.route:id,origin_ar,origin_en,destination_ar,destination_en', 'driver:id,name', 'decider:id,name', 'reviewer:id,name'])
             ->orderBy('requested_at')->limit(200)->get()
             ->map(fn (WalletTransfer $t) => TripController::transferRow($t, $user, $transfers) + [
                 'trip'   => ['id' => $t->trip_id, 'number' => $t->trip?->number, 'route' => $t->trip?->route?->displayName()],

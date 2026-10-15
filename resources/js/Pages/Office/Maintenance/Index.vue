@@ -6,8 +6,10 @@
   Open jobs hold the truck (it cannot be booked on a new trip).
   Due is the latest finished periodic service for each truck and
   item, compared with the odometer and today.
-  The log is one month of jobs. Their cost is not a trip expense
-  and not a G&A line — the maintenance report shows the same jobs.
+  The log is one month of jobs. A finished job's cost is an indirect
+  overhead of the truck: it is spread over the truck's later trips by
+  kilometre (cost ÷ service interval km), as a company-paid maintenance
+  expense — never typed again as a G&A line. The report shows the same jobs.
   Server: App\Http\Controllers\Office\MaintenanceController.
   ══════════════════════════════════════════════════════════════════
 -->
@@ -69,6 +71,7 @@ function openForm(entry = null, preset = null) {
             vehicle_id: preset?.vehicle_id ?? props.vehicle ?? '',
             kind: preset?.kind ?? 'periodic',
             category: preset?.category ?? 'oil',
+            note: preset?.note ?? '',
             status,
             completed_at: status === 'done' ? nowInput() : '',
         });
@@ -174,11 +177,11 @@ function nextText(row) {
                         <tr v-if="!due.length"><td colspan="6"><div class="empty" style="border:0">{{ t('maintenance.noneDue') }}</div></td></tr>
                         <tr v-for="e in due" :key="e.id">
                             <td><button type="button" style="background:none;border:0;padding:0;cursor:pointer" @click="go({ vehicle: e.vehicle.id })"><Plate :number="e.vehicle.number" :letters="e.vehicle.letters" /></button></td>
-                            <td>{{ t('maintenance.categories.' + e.category) }}</td>
+                            <td>{{ t('maintenance.categories.' + e.category) }}<div v-if="e.category === 'other' && e.note" class="xs mu">{{ e.note }}</div></td>
                             <td><span class="bd nodot" :class="e.state === 'overdue' ? 'rd' : 'am'">{{ t('maintenance.states.' + e.state) }}</span></td>
                             <td class="num sm">{{ nextText(e) }}</td>
                             <td class="e num">{{ e.vehicle.odometer == null ? '—' : num(e.vehicle.odometer) }}</td>
-                            <td class="e"><button v-if="can('maintenance.create')" class="btn btn-ln btn-sm" @click="openForm(null, { vehicle_id: e.vehicle.id, kind: 'periodic', category: e.category, status: 'done' })">{{ t('maintenance.recordDue') }}</button></td>
+                            <td class="e"><button v-if="can('maintenance.create')" class="btn btn-ln btn-sm" @click="openForm(null, { vehicle_id: e.vehicle.id, kind: 'periodic', category: e.category, status: 'done', note: e.category === 'other' ? e.note : '' })">{{ t('maintenance.recordDue') }}</button></td>
                         </tr>
                     </tbody>
                 </table>

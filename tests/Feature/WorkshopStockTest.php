@@ -327,6 +327,77 @@ class WorkshopStockTest extends TestCase
         $this->assertSame(0, MaintenanceJob::query()->count());
     }
 
+    public function test_cancelling_a_trip_gives_its_maintenance_share_back_to_the_pool(): void
+    {
+        $this->setUpFleet();
+        $this->actingAs($this->admin, 'web');
+
+        // A breakdown with no interval: the whole bill lands on the next trip.
+        $this->post('/office/maintenance', $this->job([
+            'kind' => 'emergency', 'category' => 'other', 'note' => 'Gearbox', 'cost' => 300,
+            'interval_km' => null, 'interval_days' => null,
+        ]))->assertSessionHas('success');
+        $this->post('/office/trips', $this->tripData())->assertSessionHasNoErrors();
+        $job = MaintenanceJob::query()->firstOrFail();
+        $trip = Trip::query()->firstOrFail();
+        $this->assertEquals(300.0, (float) TripExpense::query()->where('trip_id', $trip->id)->where('maintenance_job_id', $job->id)->sum('amount'));
+
+        $this->post("/office/trips/{$trip->id}/cancel", ['reason' => 'Customer changed plan'])->assertSessionHasNoErrors();
+        $this->assertSame('cancelled', $trip->fresh()->status);
+
+        // Nothing is left stuck on the cancelled trip, and nothing is counted twice.
+        $this->assertSame(0, TripExpense::query()->where('trip_id', $trip->id)->whereNotNull('maintenance_job_id')->count());
+
+        // The next trip takes the whole bill, once.
+        $this->post('/office/trips', $this->tripData(['loading_at' => now()->addDays(2)->format('Y-m-d H:i')]))->assertSessionHasNoErrors();
+        $next = Trip::query()->where('status', '!=', 'cancelled')->firstOrFail();
+        $shares = TripExpense::query()->where('maintenance_job_id', $job->id)->get();
+        $this->assertCount(1, $shares);
+        $this->assertSame($next->id, $shares[0]->trip_id);
+        $this->assertEquals(300.0, (float) $shares[0]->amount);
+    }
+
+    public function test_switching_an_issued_workshop_job_to_an_outside_workshop_puts_the_parts_back(): void
+    {
+        $this->setUpFleet();
+        $this->turnWorkshopOn();
+        $this->actingAs($this->admin, 'web');
+        $store = Store::query()->where('is_default', true)->firstOrFail();
+        $this->post('/office/stock/items', ['name' => 'زيت', 'unit' => 'litre']);
+        $item = StockItem::query()->where('name', 'زيت')->firstOrFail();
+        $this->post('/office/stock/receipts', [
+            'store_id' => $store->id, 'stock_item_id' => $item->id, 'qty' => 20, 'unit_price' => 50,
+        ]);
+        $this->post('/office/maintenance', $this->job([
+            'source' => 'own', 'store_id' => $store->id, 'cost' => null,
+            'lines' => [['item_id' => $item->id, 'qty' => 4]],
+        ]))->assertSessionHas('success');
+
+        $balance = StockBalance::query()->where('stock_item_id', $item->id)->firstOrFail();
+        $this->assertEquals(16.0, (float) $balance->qty);
+
+        $job = MaintenanceJob::query()->firstOrFail();
+        $this->patch("/office/maintenance/{$job->id}", $this->job(['source' => 'external', 'cost' => 700]))->assertSessionHas('success');
+
+        // The parts went back to the store and the typed bill is the job's cost.
+        $this->assertEquals(20.0, (float) $balance->fresh()->qty);
+        $this->assertEquals(1000.0, (float) $balance->fresh()->value);
+        $this->assertSame('external', $job->fresh()->source);
+        $this->assertEquals(700.0, (float) $job->fresh()->cost);
+        $this->assertSame(0, $job->fresh()->lines()->count());
+        $this->assertSame(0, \App\Models\StockMove::query()->where('direction', 'out')->count());
+    }
+
+    public function test_a_job_cannot_be_finished_in_the_future(): void
+    {
+        $this->setUpFleet();
+        $this->actingAs($this->admin, 'web');
+
+        $this->post('/office/maintenance', $this->job(['completed_at' => now()->addDays(30)->format('Y-m-d H:i')]))
+            ->assertSessionHasErrors('completed_at');
+        $this->assertSame(0, MaintenanceJob::query()->count());
+    }
+
     private function turnWorkshopOn(): void
     {
         CompanySetting::for($this->co->id)->update(['has_workshop' => true]);

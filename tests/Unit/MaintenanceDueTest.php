@@ -15,6 +15,23 @@ use PHPUnit\Framework\TestCase;
 
 class MaintenanceDueTest extends TestCase
 {
+    public function test_other_jobs_with_different_notes_are_different_items_but_oil_is_one(): void
+    {
+        $jobs = [
+            ['id' => 1, 'vehicle_id' => 5, 'category' => 'other', 'note' => 'Brakes', 'completed_at' => '2026-01-01 10:00:00'],
+            ['id' => 2, 'vehicle_id' => 5, 'category' => 'other', 'note' => 'Gearbox oil', 'completed_at' => '2026-02-01 10:00:00'],
+            ['id' => 3, 'vehicle_id' => 5, 'category' => 'other', 'note' => '  brakes ', 'completed_at' => '2026-03-01 10:00:00'],
+            ['id' => 4, 'vehicle_id' => 5, 'category' => 'oil', 'note' => 'a', 'completed_at' => '2026-01-01 10:00:00'],
+            ['id' => 5, 'vehicle_id' => 5, 'category' => 'oil', 'note' => 'b', 'completed_at' => '2026-02-01 10:00:00'],
+        ];
+
+        $ids = array_map(fn ($j) => $j['id'], MaintenanceDue::latest($jobs));
+        sort($ids);
+
+        // Brakes (newest = 3) and Gearbox (2) both stay; oil is one item (newest = 5).
+        $this->assertSame([2, 3, 5], $ids);
+    }
+
     public function test_kilometres_are_overdue_at_the_next_reading_soon_within_500_and_otherwise_ok(): void
     {
         $job = $this->job(['odometer_km' => 10000, 'interval_km' => 1000, 'interval_days' => null]);

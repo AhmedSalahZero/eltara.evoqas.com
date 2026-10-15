@@ -120,6 +120,19 @@ class WalletsTest extends TestCase
         $this->get('/office/wallets?tab=review')->assertInertia(fn (Assert $page) => $page->where('tiles.review', 0));
     }
 
+    public function test_the_review_tab_opens_with_several_automatic_transfers(): void
+    {
+        $trip = $this->runningTrip('auto');
+        $this->actingAs($this->admin, 'web');
+        $this->post("/office/trips/{$trip->id}/collections", ['amount' => 5000]);
+        $this->post("/office/trips/{$trip->id}/transfers", ['amount' => 800, 'reason' => 'Night stop']);
+        $this->travel(10)->seconds();
+        $this->post("/office/trips/{$trip->id}/transfers", ['amount' => 600, 'reason' => 'Tolls']);
+
+        $this->get('/office/wallets?tab=review')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('Office/Wallets/Index')->has('review', 2));
+    }
+
     public function test_policy_auto_needs_no_approval_at_any_amount(): void
     {
         $trip = $this->runningTrip('auto');
